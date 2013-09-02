@@ -260,7 +260,7 @@ void ofxGstRTPServer::addOscChannel(int port){
 		string oelem="appsrc is-live=1 format=time name=appsrcosc ! application/x-osc ";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string osource= oelem + " ! queue leaky=2 max-size-buffers=5 ";
+		string osource= oelem;
 
 		// rtp pay
 		string oenc=" rtpgstpay pt=96";

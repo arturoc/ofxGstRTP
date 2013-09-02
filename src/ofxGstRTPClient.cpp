@@ -58,10 +58,21 @@ string ofxGstRTPClient::LOG_NAME="ofxGstRTPClient";
 ofxGstRTPClient::ofxGstRTPClient()
 :width(0)
 ,height(0)
+,pipeline(0)
+,rtpbin(0)
 ,videoSink(0)
 ,depthSink(0)
 ,oscSink(0)
+,vudpsrc(0)
+,audpsrc(0)
+,dudpsrc(0)
+,oudpsrc(0)
+,vudpsrcrtcp(0)
+,audpsrcrtcp(0)
+,dudpsrcrtcp(0)
+,oudpsrcrtcp(0)
 ,depth16(false)
+,latency(0)
 ,videoSessionNumber(-1)
 ,audioSessionNumber(-1)
 ,depthSessionNumber(-1)
@@ -363,6 +374,8 @@ void ofxGstRTPClient::createVideoChannel(int w, int h, int fps){
 	// rgb pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	GstElement * h264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
+	GstElement * vqueue = gst_element_factory_make("queue","vqueue");
+	g_object_set(vqueue,"leaky","2", "max-size-buffers","5",NULL);
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","vconvert");
 	videoSink = (GstAppSink*)gst_element_factory_make("appsink","videosink");
@@ -391,8 +404,8 @@ void ofxGstRTPClient::createVideoChannel(int w, int h, int fps){
 	gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink),0);
 
 	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), h264depay, avdec_h264, vconvert, videoSink, NULL);
-	if(!gst_element_link_many(h264depay, avdec_h264, vconvert, videoSink, NULL)){
+	gst_bin_add_many(GST_BIN(pipeline), h264depay, vqueue, avdec_h264, vconvert, videoSink, NULL);
+	if(!gst_element_link_many(h264depay, vqueue, avdec_h264, vconvert, videoSink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link video elements";
 	}
 }
@@ -450,6 +463,8 @@ void ofxGstRTPClient::createDepthChannel(int w, int h, int fps, bool depth16){
 		// depth pipeline to be connected to the corresponding recv_rtp_send pad:
 		// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 		GstElement * h264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
+		GstElement * dqueue = gst_element_factory_make("queue","dqueue");
+		g_object_set(dqueue,"leaky","2", "max-size-buffers","5",NULL);
 		GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
 		GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
 		depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
@@ -486,8 +501,8 @@ void ofxGstRTPClient::createDepthChannel(int w, int h, int fps, bool depth16){
 		gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
 
 		// add elements to the pipeline and link them (but not yet to the rtpbin)
-		gst_bin_add_many(GST_BIN(pipeline), h264depay, avdec_h264, vconvert, depthSink, NULL);
-		if(!gst_element_link_many(h264depay, avdec_h264, vconvert, depthSink, NULL)){
+		gst_bin_add_many(GST_BIN(pipeline), h264depay, dqueue, avdec_h264, vconvert, depthSink, NULL);
+		if(!gst_element_link_many(h264depay, dqueue, avdec_h264, vconvert, depthSink, NULL)){
 			ofLogError(LOG_NAME) << "couldn't link depth elements";
 		}
 }
