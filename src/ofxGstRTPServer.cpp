@@ -173,7 +173,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 
 		// opus encoder + opus pay
 		// FIXME: audio=0 is voice??
-		string aenc="opusenc name=aencoder audio=0 ! rtpopuspay pt=96";
+		string aenc="opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
 
 	// audio rtpc
 		string artpsink;
@@ -219,7 +219,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 		string dsource= delem + " ! queue leaky=2 max-size-buffers=5 ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(bitrate)+" name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(bitrate)+" name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
 
 	// depth rtpc
 	// ------------------
@@ -263,7 +263,7 @@ void ofxGstRTPServer::addOscChannel(int port){
 		string osource= oelem;
 
 		// rtp pay
-		string oenc=" rtpgstpay pt=96";
+		string oenc=" rtpgstpay pt=99";
 
 	// osc rtpc
 	// ------------------

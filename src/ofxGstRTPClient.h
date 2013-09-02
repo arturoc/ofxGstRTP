@@ -153,6 +153,16 @@ private:
 	int oscSessionNumber;
 	int lastSessionNumber;
 
+	guint videoSSRC;
+	guint depthSSRC;
+	guint audioSSRC;
+	guint oscSSRC;
+
+	bool videoReady;
+	bool depthReady;
+	bool audioReady;
+	bool oscReady;
+
 	// ICE/XMPP related
 	ofxNiceStream * videoStream;
 	ofxNiceStream * depthStream;
