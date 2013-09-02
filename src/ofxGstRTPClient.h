@@ -64,10 +64,10 @@ private:
 	};
 	void createNetworkElements(NetworkElementsProperties properties, ofxNiceStream * niceStream);
 
-	void createAudioChannel();
-	void createVideoChannel(int w, int h, int fps);
-	void createDepthChannel(int w, int h, int fps, bool depth16=false);
-	void createOscChannel();
+	void createAudioChannel(string rtpCaps);
+	void createVideoChannel(string rtpCaps, int w, int h, int fps);
+	void createDepthChannel(string rtpCaps, int w, int h, int fps, bool depth16=false);
+	void createOscChannel(string rtpCaps);
 
 	// calbacks from gstUtils
 	bool on_message(GstMessage * msg);
@@ -122,6 +122,11 @@ private:
 
 	GstElement * pipeline;
 	GstElement * rtpbin;
+
+	GstElement * vh264depay;
+	GstElement * opusdepay;
+	GstElement * dh264depay;
+	GstElement * gstdepay;
 
 	GstAppSink * videoSink;
 	GstAppSink * depthSink;

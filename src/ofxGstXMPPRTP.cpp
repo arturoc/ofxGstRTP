@@ -141,17 +141,17 @@ void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<o
 		content.payloads[0].clockrate=90000;
 		content.payloads[0].id=96;
 		content.payloads[0].name="H264";
-	}else if(content.media=="depth"){
-		content.payloads[0].clockrate=90000;
-		content.payloads[0].id=96;
-		content.payloads[0].name="H264";
 	}else if(content.media=="audio"){
 		content.payloads[0].clockrate=48000;
-		content.payloads[0].id=96;
+		content.payloads[0].id=97;
 		content.payloads[0].name="X-GST-OPUS-DRAFT-SPITTKA-00";
+	}else if(content.media=="depth"){
+		content.payloads[0].clockrate=90000;
+		content.payloads[0].id=98;
+		content.payloads[0].name="H264";
 	}else if(content.media=="osc"){
 		content.payloads[0].clockrate=90000;
-		content.payloads[0].id=96;
+		content.payloads[0].id=99;
 		content.payloads[0].name="X-GST";
 	}
 	content.transport.pwd= stream->getLocalPwd();

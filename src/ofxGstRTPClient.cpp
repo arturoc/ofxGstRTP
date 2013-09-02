@@ -60,6 +60,10 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,height(0)
 ,pipeline(0)
 ,rtpbin(0)
+,vh264depay(0)
+,opusdepay(0)
+,dh264depay(0)
+,gstdepay(0)
 ,videoSink(0)
 ,depthSink(0)
 ,oscSink(0)
@@ -154,16 +158,6 @@ void ofxGstRTPClient::on_new_ssrc_handler(GstBin *rtpbin, guint session, guint s
 	}
 	ofLogVerbose(LOG_NAME) << get_object_structure_property(remoteSource,"stats");
 
-	if(session == rtpClient->videoSessionNumber){
-		rtpClient->videoSSRC = ssrc;
-	}else if(session == rtpClient->depthSessionNumber){
-		rtpClient->depthSSRC = ssrc;
-	}else if(session == rtpClient->audioSessionNumber){
-		rtpClient->audioSSRC = ssrc;
-	}else if(session ==rtpClient->oscSessionNumber){
-		rtpClient->oscSSRC = ssrc;
-	}
-
 	//GstPad * srcpad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(session)+"_"+ofToString(ssrc));
 }
 
@@ -199,7 +193,7 @@ void ofxGstRTPClient::linkAudioPad(GstPad * pad){
 	//FIXME: this should get the state instead of async set
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PAUSED);
 
-	GstPad * sinkPad = gst_element_get_static_pad(gst.getGstElementByName("rtpopusdepay1"),"sink");
+	GstPad * sinkPad = gst_element_get_static_pad(opusdepay,"sink");
 	if(sinkPad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to audio depay";
@@ -209,10 +203,10 @@ void ofxGstRTPClient::linkAudioPad(GstPad * pad){
 			//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 		}
 	}else{
-		ofLogError(LOG_NAME) << "couldn't get sink pad for h264 depay";
+		ofLogError(LOG_NAME) << "couldn't get sink pad for opus depay";
 	}
 
-	g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
+	//g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
 
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 }
@@ -221,7 +215,7 @@ void ofxGstRTPClient::linkVideoPad(GstPad * pad){
 	//FIXME: this should get the state instead of async set
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PAUSED);
 
-	GstPad * sinkPad = gst_element_get_static_pad(gst.getGstElementByName("rtph264depay_video"),"sink");
+	GstPad * sinkPad = gst_element_get_static_pad(vh264depay,"sink");
 	if(sinkPad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to video depay";
@@ -234,7 +228,7 @@ void ofxGstRTPClient::linkVideoPad(GstPad * pad){
 		ofLogError(LOG_NAME) << "couldn't get sink pad for h264 depay";
 	}
 
-	g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
+	//g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
 
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 }
@@ -243,7 +237,7 @@ void ofxGstRTPClient::linkDepthPad(GstPad * pad){
 	//FIXME: this should get the state instead of async set
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PAUSED);
 
-	GstPad * sinkPad = gst_element_get_static_pad(gst.getGstElementByName("rtph264depay_depth"),"sink");
+	GstPad * sinkPad = gst_element_get_static_pad(dh264depay,"sink");
 	if(sinkPad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to depth depay";
@@ -256,7 +250,7 @@ void ofxGstRTPClient::linkDepthPad(GstPad * pad){
 		ofLogError(LOG_NAME) << "couldn't get sink pad for h264 depay";
 	}
 
-	g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
+	//g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
 
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 }
@@ -267,7 +261,7 @@ void ofxGstRTPClient::linkOscPad(GstPad * pad){
 	//FIXME: this should get the state instead of async set
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PAUSED);
 
-	GstPad * sinkPad = gst_element_get_static_pad(gst.getGstElementByName("rtpgstdepay_osc"),"sink");
+	GstPad * sinkPad = gst_element_get_static_pad(gstdepay,"sink");
 	if(sinkPad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to osc depay";
@@ -280,7 +274,7 @@ void ofxGstRTPClient::linkOscPad(GstPad * pad){
 		ofLogError(LOG_NAME) << "couldn't get sink pad for osc depay";
 	}
 
-	g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
+	//g_signal_emit_by_name(gst.getGstElementByName("rtpbin"),"reset-sync",NULL);
 
 	//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 }
@@ -379,7 +373,7 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 }
 
 
-void ofxGstRTPClient::createVideoChannel(int w, int h, int fps){
+void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	videoSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
@@ -392,7 +386,7 @@ void ofxGstRTPClient::createVideoChannel(int w, int h, int fps){
 
 	// rgb pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
-	GstElement * h264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
+	vh264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
 	GstElement * vqueue = gst_element_factory_make("queue","vqueue");
 	g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
@@ -423,13 +417,13 @@ void ofxGstRTPClient::createVideoChannel(int w, int h, int fps){
 	gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink),0);
 
 	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), h264depay, vqueue, avdec_h264, vconvert, videoSink, NULL);
-	if(!gst_element_link_many(h264depay, vqueue, avdec_h264, vconvert, videoSink, NULL)){
+	gst_bin_add_many(GST_BIN(pipeline), vh264depay, vqueue, avdec_h264, vconvert, videoSink, NULL);
+	if(!gst_element_link_many(vh264depay, vqueue, avdec_h264, vconvert, videoSink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link video elements";
 	}
 }
 
-void ofxGstRTPClient::createAudioChannel(){
+void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 	audioSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
@@ -450,7 +444,7 @@ void ofxGstRTPClient::createAudioChannel(){
 	// everything else:
 	// rtpopusdepay ! opusdec ! audioresample ! autoaudiosink
 
-	GstElement * opusdepay = gst_element_factory_make("rtpopusdepay","rtpopusdepay1");
+	opusdepay = gst_element_factory_make("rtpopusdepay","rtpopusdepay1");
 	GstElement * opusdec = gst_element_factory_make("opusdec","opusdec1");
 	GstElement * audioconvert = gst_element_factory_make("audioconvert","audioconvert1");
 	GstElement * audioresample = gst_element_factory_make("audioresample","audioresample1");
@@ -471,62 +465,62 @@ void ofxGstRTPClient::createAudioChannel(){
 
 }
 
-void ofxGstRTPClient::createDepthChannel(int w, int h, int fps, bool depth16){
+void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, bool depth16){
 	depthSessionNumber = lastSessionNumber;
-		lastSessionNumber++;
+	lastSessionNumber++;
 
-		this->depth16 = depth16;
+	this->depth16 = depth16;
 
 
-		// create and add depth elements and connect them to the correct pad.
-		// depth pipeline to be connected to the corresponding recv_rtp_send pad:
-		// rtph264depay ! avdec_h264 ! videoconvert ! appsink
-		GstElement * h264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
-		GstElement * dqueue = gst_element_factory_make("queue","dqueue");
-		g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
-		GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
-		GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
-		depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
+	// create and add depth elements and connect them to the correct pad.
+	// depth pipeline to be connected to the corresponding recv_rtp_send pad:
+	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
+	dh264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
+	GstElement * dqueue = gst_element_factory_make("queue","dqueue");
+	g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
+	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
+	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
+	depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
 
-		// set format for depth appsink to gray 8bits
-		GstCaps * caps;
+	// set format for depth appsink to gray 8bits
+	GstCaps * caps;
 
-		if(depth16){
-			caps = gst_caps_new_simple("video/x-raw",
-					"format",G_TYPE_STRING,"RGB",
-					"width", G_TYPE_INT,w,
-					"height", G_TYPE_INT,h,
-					NULL);
-		}else{
-			caps = gst_caps_new_simple("video/x-raw",
-					"format",G_TYPE_STRING,"GRAY8",
-					"width", G_TYPE_INT,w,
-					"height", G_TYPE_INT,h,
-					NULL);
-		}
-		if(!caps){
-			ofLogError(LOG_NAME) << "couldn't get caps";
-		}else{
-			gst_app_sink_set_caps(depthSink,caps);
-			gst_caps_unref(caps);
-		}
+	if(depth16){
+		caps = gst_caps_new_simple("video/x-raw",
+				"format",G_TYPE_STRING,"RGB",
+				"width", G_TYPE_INT,w,
+				"height", G_TYPE_INT,h,
+				NULL);
+	}else{
+		caps = gst_caps_new_simple("video/x-raw",
+				"format",G_TYPE_STRING,"GRAY8",
+				"width", G_TYPE_INT,w,
+				"height", G_TYPE_INT,h,
+				NULL);
+	}
+	if(!caps){
+		ofLogError(LOG_NAME) << "couldn't get caps";
+	}else{
+		gst_app_sink_set_caps(depthSink,caps);
+		gst_caps_unref(caps);
+	}
 
-		// set callbacks to receive depth data
-		GstAppSinkCallbacks gstCallbacks;
-		gstCallbacks.eos = &on_eos_from_depth;
-		gstCallbacks.new_preroll = &on_new_preroll_from_depth;
-		gstCallbacks.new_sample = &on_new_buffer_from_depth;
-		gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
-		gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
+	// set callbacks to receive depth data
+	GstAppSinkCallbacks gstCallbacks;
+	gstCallbacks.eos = &on_eos_from_depth;
+	gstCallbacks.new_preroll = &on_new_preroll_from_depth;
+	gstCallbacks.new_sample = &on_new_buffer_from_depth;
+	gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
+	gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
 
-		// add elements to the pipeline and link them (but not yet to the rtpbin)
-		gst_bin_add_many(GST_BIN(pipeline), h264depay, dqueue, avdec_h264, vconvert, depthSink, NULL);
-		if(!gst_element_link_many(h264depay, dqueue, avdec_h264, vconvert, depthSink, NULL)){
-			ofLogError(LOG_NAME) << "couldn't link depth elements";
-		}
+	// add elements to the pipeline and link them (but not yet to the rtpbin)
+	gst_bin_add_many(GST_BIN(pipeline), dh264depay, dqueue, avdec_h264, vconvert, depthSink, NULL);
+	if(!gst_element_link_many(dh264depay, dqueue, avdec_h264, vconvert, depthSink, NULL)){
+		ofLogError(LOG_NAME) << "couldn't link depth elements";
+	}
 }
 
-void ofxGstRTPClient::createOscChannel(){
+void ofxGstRTPClient::createOscChannel(string rtpCaps){
 
 	oscSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
@@ -535,7 +529,7 @@ void ofxGstRTPClient::createOscChannel(){
 	// create and add osc elements and connect them to the correct pad.
 	// osc pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtpgstdepay ! appsink
-	GstElement * gstdepay = gst_element_factory_make("rtpgstdepay","rtpgstdepay_osc");
+	gstdepay = gst_element_factory_make("rtpgstdepay","rtpgstdepay_osc");
 	oscSink = (GstAppSink*)gst_element_factory_make("appsink","oscsink");
 
 
@@ -569,13 +563,14 @@ void ofxGstRTPClient::createOscChannel(){
 }
 
 void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
-	createVideoChannel(w,h,fps);
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string vcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264";
+
+	createVideoChannel(vcaps, w,h,fps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -592,17 +587,20 @@ void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
 	properties.rtpcSourceName = "vrtcpsrc";
 	properties.rtpcSinkName = "vrtcpsink";
 	createNetworkElements(properties,NULL);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(videoSessionNumber)).c_str());
+	linkVideoPad(pad);*/
 }
 
 void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool depth16){
-
-	createDepthChannel(w,h,fps,depth16);
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264";
+
+	createDepthChannel(dcaps, w,h,fps,depth16);
 
 
 	GstElement * rtcpsink;
@@ -620,16 +618,20 @@ void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool dept
 	properties.rtpcSourceName = "drtcpsrc";
 	properties.rtpcSinkName = "drtcpsink";
 	createNetworkElements(properties, NULL);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(depthSessionNumber)).c_str());
+	linkDepthPad(pad);*/
 }
 
 void ofxGstRTPClient::addAudioChannel(int port){
-	createAudioChannel();
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)98,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
+
+	createAudioChannel(acaps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -646,10 +648,12 @@ void ofxGstRTPClient::addAudioChannel(int port){
 	properties.rtpcSourceName = "artcpsrc";
 	properties.rtpcSinkName = "artcpsink";
 	createNetworkElements(properties, NULL);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(audioSessionNumber)).c_str());
+	linkAudioPad(pad);*/
 }
 
 void ofxGstRTPClient::addOscChannel(int port){
-	createOscChannel();
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
@@ -657,6 +661,7 @@ void ofxGstRTPClient::addOscChannel(int port){
 	// have that yet
 	string ocaps="application/x-rtp,media=(string)application,clock-rate=(int)90000,payload=(int)99,encoding-name=(string)X-GST,caps=(string)\"YXBwbGljYXRpb24veC1vc2M\\=\"";
 
+	createOscChannel(ocaps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -673,17 +678,21 @@ void ofxGstRTPClient::addOscChannel(int port){
 	properties.rtpcSourceName = "ortcpsrc";
 	properties.rtpcSinkName = "ortcpsink";
 	createNetworkElements(properties,NULL);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(oscSessionNumber)).c_str());
+	linkOscPad(pad);*/
 }
 
 void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps){
 	videoStream = niceStream;
-	createVideoChannel(w,h,fps);
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string vcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264";
+
+	createVideoChannel(vcaps, w,h,fps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -699,17 +708,21 @@ void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream, int w, int h, 
 	properties.rtpcSinkName = "vrtcpsink";
 	createNetworkElements(properties,niceStream);
 
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(videoSessionNumber)).c_str());
+	linkVideoPad(pad);*/
+
 }
 
 void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
 	audioStream = niceStream;
-	createAudioChannel();
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)97,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
+
+	createAudioChannel(acaps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -724,17 +737,21 @@ void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
 	properties.rtpcSourceName = "artcpsrc";
 	properties.rtpcSinkName = "artcpsink";
 	createNetworkElements(properties, niceStream);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(audioSessionNumber)).c_str());
+	linkAudioPad(pad);*/
 }
 
 void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16){
 	depthStream = niceStream;
-	createDepthChannel(w,h,fps,depth16);
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)H264";
+
+	createDepthChannel(dcaps,w,h,fps,depth16);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -750,17 +767,22 @@ void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, int w, int h, 
 	properties.rtpcSinkName = "drtcpsink";
 	createNetworkElements(properties, niceStream);
 
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(depthSessionNumber)).c_str());
+	linkDepthPad(pad);*/
+
 }
 
 void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
 	oscStream = niceStream;
-	createOscChannel();
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
 	string ocaps="application/x-rtp,media=(string)application,clock-rate=(int)90000,payload=(int)99,encoding-name=(string)X-GST,caps=(string)\"YXBwbGljYXRpb24veC1vc2M\\=\"";
+
+
+	createOscChannel(ocaps);
 
 
 	GstElement * rtcpsink;
@@ -776,6 +798,9 @@ void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
 	properties.rtpcSourceName = "ortcpsrc";
 	properties.rtpcSinkName = "ortcpsink";
 	createNetworkElements(properties,niceStream);
+
+	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(oscSessionNumber)).c_str());
+	linkOscPad(pad);*/
 
 }
 

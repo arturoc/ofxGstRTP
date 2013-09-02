@@ -441,6 +441,15 @@ void ofxGstRTPServer::play(){
 
 	gst.play();
 
+
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	gst_object_ref(clock);
+	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+	gst_object_unref (clock);
+	prevTimestamp = now;
+	prevTimestampDepth = now;
+	prevTimestampOsc = now;
+
 }
 
 bool ofxGstRTPServer::on_message(GstMessage * msg){
