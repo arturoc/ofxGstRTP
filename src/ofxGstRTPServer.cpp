@@ -99,6 +99,9 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,depthStream(NULL)
 ,oscStream(NULL)
 ,audioStream(NULL)
+,firstVideoFrame(true)
+,firstOscFrame(true)
+,firstDepthFrame(true)
 {
 
 }
@@ -507,6 +510,12 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
+	if(firstVideoFrame){
+		prevTimestamp = now;
+		firstVideoFrame = false;
+		return;
+	}
+
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPool->newBuffer();
 	*(ofPixels*)pooledPixels=pixels;
@@ -568,6 +577,11 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
+	if(firstDepthFrame){
+		prevTimestampDepth = now;
+		firstDepthFrame = false;
+		return;
+	}
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
@@ -633,6 +647,11 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
+	if(firstDepthFrame){
+		prevTimestampDepth = now;
+		firstDepthFrame = false;
+		return;
+	}
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
@@ -690,6 +709,12 @@ void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
+
+	if(firstOscFrame){
+		prevTimestampOsc = now;
+		firstOscFrame = false;
+		return;
+	}
 
 	PooledOscPacket * pooledOscPkg = oscPacketPool.newBuffer();
 	appendMessage(msg,pooledOscPkg->packet);

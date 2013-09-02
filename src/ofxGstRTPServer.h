@@ -103,6 +103,10 @@ private:
 	ofxNiceStream * depthStream;
 	ofxNiceStream * oscStream;
 	ofxNiceStream * audioStream;
+
+	bool firstVideoFrame;
+	bool firstOscFrame;
+	bool firstDepthFrame;
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */

@@ -145,6 +145,11 @@ void ofxGstRTPClient::on_new_ssrc_handler(GstBin *rtpbin, guint session, guint s
 	GObject * remoteSource;
 	g_signal_emit_by_name (internalSession, "get-source-by-ssrc", ssrc, &remoteSource, NULL);
 
+
+	GObject * internalSource;
+	g_object_get (internalSession, "internal-source", &internalSource, NULL);
+	ofLogVerbose(LOG_NAME) << get_object_structure_property(internalSource,"stats");
+
 	GstStructure *stats;
 	gchar* remoteAddress=0;
 	g_object_get (remoteSource, "stats", &stats, NULL);
