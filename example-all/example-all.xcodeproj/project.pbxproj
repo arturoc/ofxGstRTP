@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		125ab007d29cecba2d2b3ce1e7e61a2c /* Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = a842faa158fb434df69d04f84e9d6e7c /* Utils.cpp */; };
 		169d3c72fde6c5590a1616f500a456b4 /* ofxCvFloatImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7b6a03390302d5a2c9f0e4ab630ae8d6 /* ofxCvFloatImage.cpp */; };
 		1a0b4de7cd6fbc09037d78cfa3a062d1 /* snappy-sinksource.cc in Sources */ = {isa = PBXBuildFile; fileRef = b54869073be1018f875a141c33a9e466 /* snappy-sinksource.cc */; };
 		1cd33e884d9e3358252e82a14dc97644 /* ofxToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 907c5b5e104864a2d3a2574573796b13 /* ofxToggle.cpp */; };
@@ -38,6 +37,7 @@
 		DA4B6A3C17CF9B42009F813D /* ofGstUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DA4B6A2517CF9B42009F813D /* ofGstUtils.cpp */; };
 		DA4B6A3D17CF9B42009F813D /* ofGstVideoGrabber.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DA4B6A2717CF9B42009F813D /* ofGstVideoGrabber.cpp */; };
 		DA4B6A3E17CF9B42009F813D /* ofGstVideoPlayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DA4B6A2917CF9B42009F813D /* ofGstVideoPlayer.cpp */; };
+		DA4B6A4D17D5FF9F009F813D /* ofxGstRTPUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DA4B6A4B17D5FF9F009F813D /* ofxGstRTPUtils.cpp */; };
 		E4328149138ABC9F0047C5CB /* openFrameworksDebug.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E4328148138ABC890047C5CB /* openFrameworksDebug.a */; };
 		E45BE97B0E8CC7DD009D7055 /* AGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE9710E8CC7DD009D7055 /* AGL.framework */; };
 		E45BE97C0E8CC7DD009D7055 /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE9720E8CC7DD009D7055 /* ApplicationServices.framework */; };
@@ -61,7 +61,6 @@
 		b266578fc55d23bfebc042e7628673a3 /* ofxGuiGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ecf8674c7975f1063c5e30ca6284e945 /* ofxGuiGroup.cpp */; };
 		b41046d14b5166fc7c9d6a6ff6102908 /* snappy.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3a6b48558974faa735cd619c2346d731 /* snappy.cc */; };
 		b56fe57cc35806596d38118c4b1b847e /* ofxSliderGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 802251baf1b35b1d67b32fd0dec4da78 /* ofxSliderGroup.cpp */; };
-		ba5d3c178526600cce420610744c1366 /* ofxBaseGui.h.orig in Sources */ = {isa = PBXBuildFile; fileRef = 7b0a2d0273dd4beb9444020898dd6401 /* ofxBaseGui.h.orig */; };
 		be71aebd4b1b5691bd72d1e83d5e4927 /* ofxOscPacketPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42593364e6d9a2fe9147d200fadd55c0 /* ofxOscPacketPool.cpp */; };
 		c0e2d22980b4b85a0413e94ce5893237 /* ofxGstRTPClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 48da26471156b1c99b440d00b1e2165f /* ofxGstRTPClient.cpp */; };
 		d31f5c1b140c59b2af1533a8cf661f5b /* registration.c in Sources */ = {isa = PBXBuildFile; fileRef = 71958293ac5292de4b7c619d69597dbe /* registration.c */; };
@@ -131,7 +130,6 @@
 		2be604818152c27af4db410eff0044de /* stream.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = stream.h; path = ../../../addons/ofxNice/libs/libnice/include/nice/stream.h; sourceTree = SOURCE_ROOT; };
 		2e411f99e3ab7154484b4f96165f5cff /* kmeans_index.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = kmeans_index.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/flann/kmeans_index.h; sourceTree = SOURCE_ROOT; };
 		2f1af1b5ca9eaa5a5309245c45215508 /* udp-bsd.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = "udp-bsd.h"; path = "../../../addons/ofxNice/libs/libnice/include/nice/udp-bsd.h"; sourceTree = SOURCE_ROOT; };
-		2f711619107e8d547b8d902f46e6fead /* Utils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = Utils.h; path = src/Utils.h; sourceTree = SOURCE_ROOT; };
 		3060633f7cc949a1a7c6d864808c47c0 /* conncheck.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = conncheck.h; path = ../../../addons/ofxNice/libs/libnice/include/nice/conncheck.h; sourceTree = SOURCE_ROOT; };
 		30884ecd9c171ab1b1bdfc3f6449c692 /* cv.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = cv.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv/cv.hpp; sourceTree = SOURCE_ROOT; };
 		319268d200f1ba567e4ccff97a1babd8 /* cxeigen.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = cxeigen.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv/cxeigen.hpp; sourceTree = SOURCE_ROOT; };
@@ -183,7 +181,6 @@
 		758f19335d4e46a5e0de449ff93829ac /* kdtree_single_index.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = kdtree_single_index.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/flann/kdtree_single_index.h; sourceTree = SOURCE_ROOT; };
 		7673f0aa19794a4c9517cf1408f2df5b /* ts.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ts.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/ts/ts.hpp; sourceTree = SOURCE_ROOT; };
 		78d67a00eb899fac0943059784f8212a /* ofxLabel.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofxLabel.cpp; path = ../../../addons/ofxGui/src/ofxLabel.cpp; sourceTree = SOURCE_ROOT; };
-		7b0a2d0273dd4beb9444020898dd6401 /* ofxBaseGui.h.orig */ = {isa = PBXFileReference; explicitFileType = file; fileEncoding = 30; name = ofxBaseGui.h.orig; path = ../../../addons/ofxGui/src/ofxBaseGui.h.orig; sourceTree = SOURCE_ROOT; };
 		7b6a03390302d5a2c9f0e4ab630ae8d6 /* ofxCvFloatImage.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofxCvFloatImage.cpp; path = ../../../addons/ofxOpenCv/src/ofxCvFloatImage.cpp; sourceTree = SOURCE_ROOT; };
 		7c3d9c0eac738ed2624d264b3254d910 /* ml.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ml.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv/ml.h; sourceTree = SOURCE_ROOT; };
 		7e57aae3fab29f87d19451bc40b06273 /* sampling.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = sampling.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/flann/sampling.h; sourceTree = SOURCE_ROOT; };
@@ -212,7 +209,6 @@
 		97cfad0b2f2db004a8a3bc0bfe4f838a /* objdetect.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = objdetect.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/objdetect/objdetect.hpp; sourceTree = SOURCE_ROOT; };
 		97d098779d1333755447c006f6a95cb3 /* socket.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = socket.h; path = ../../../addons/ofxNice/libs/libnice/include/nice/socket.h; sourceTree = SOURCE_ROOT; };
 		97fbd89e6180673035ad1083e6afc93e /* video.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = video.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/video/video.hpp; sourceTree = SOURCE_ROOT; };
-		99211d95ebd61912226273d05aa235b9 /* utils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = utils.h; path = ../../../addons/ofxNice/libs/libnice/include/nice/utils.h; sourceTree = SOURCE_ROOT; };
 		99466a57dbf2349c886357318141d08a /* ofxGstRTPServer.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ofxGstRTPServer.h; path = ../../../addons/ofxGstRTP/src/ofxGstRTPServer.h; sourceTree = SOURCE_ROOT; };
 		9a048549f08c6dffa79e6def6eeedb50 /* ofxCvGrayscaleImage.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ofxCvGrayscaleImage.h; path = ../../../addons/ofxOpenCv/src/ofxCvGrayscaleImage.h; sourceTree = SOURCE_ROOT; };
 		9a16cbf2e8cfe43af54fe6f55efbf8a4 /* ofxCvHaarFinder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofxCvHaarFinder.cpp; path = ../../../addons/ofxOpenCv/src/ofxCvHaarFinder.cpp; sourceTree = SOURCE_ROOT; };
@@ -254,6 +250,8 @@
 		DA4B6A2817CF9B42009F813D /* ofGstVideoGrabber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofGstVideoGrabber.h; path = ../../../libs/openFrameworks/video/ofGstVideoGrabber.h; sourceTree = "<group>"; };
 		DA4B6A2917CF9B42009F813D /* ofGstVideoPlayer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofGstVideoPlayer.cpp; path = ../../../libs/openFrameworks/video/ofGstVideoPlayer.cpp; sourceTree = "<group>"; };
 		DA4B6A2A17CF9B42009F813D /* ofGstVideoPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofGstVideoPlayer.h; path = ../../../libs/openFrameworks/video/ofGstVideoPlayer.h; sourceTree = "<group>"; };
+		DA4B6A4B17D5FF9F009F813D /* ofxGstRTPUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofxGstRTPUtils.cpp; path = ../src/ofxGstRTPUtils.cpp; sourceTree = "<group>"; };
+		DA4B6A4C17D5FF9F009F813D /* ofxGstRTPUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxGstRTPUtils.h; path = ../src/ofxGstRTPUtils.h; sourceTree = "<group>"; };
 		E4328143138ABC890047C5CB /* openFrameworksLib.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = openFrameworksLib.xcodeproj; path = ../../../libs/openFrameworksCompiled/project/osx/openFrameworksLib.xcodeproj; sourceTree = SOURCE_ROOT; };
 		E45BE9710E8CC7DD009D7055 /* AGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AGL.framework; path = /System/Library/Frameworks/AGL.framework; sourceTree = "<absolute>"; };
 		E45BE9720E8CC7DD009D7055 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
@@ -279,7 +277,6 @@
 		a15e0125b8c9b7f01ded56958ff73de8 /* matrix.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = matrix.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/flann/matrix.h; sourceTree = SOURCE_ROOT; };
 		a2ee5e80b134ea52a8b369d28837350a /* eigen.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = eigen.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/core/eigen.hpp; sourceTree = SOURCE_ROOT; };
 		a4d326ae9c3620ab24cbe38c1fad8c05 /* interfaces.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = interfaces.h; path = ../../../addons/ofxNice/libs/libnice/include/nice/interfaces.h; sourceTree = SOURCE_ROOT; };
-		a842faa158fb434df69d04f84e9d6e7c /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = Utils.cpp; path = src/Utils.cpp; sourceTree = SOURCE_ROOT; };
 		a9c85208c7e45fb9d192678915a9b998 /* wimage.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = wimage.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/core/wimage.hpp; sourceTree = SOURCE_ROOT; };
 		ab2ae477f82acf17d012116617aaeb5e /* mat.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = mat.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/core/mat.hpp; sourceTree = SOURCE_ROOT; };
 		ab79a50bb06896059d9c6f4251ea56c5 /* ofxXMPP.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofxXMPP.cpp; path = ../../../addons/ofxXMPP/src/ofxXMPP.cpp; sourceTree = SOURCE_ROOT; };
@@ -574,7 +571,6 @@
 				57745a661c6d0d8803cbf66871d65d64 /* debug.h */,
 				6716f57dc68fd8d08297c0923dff85a6 /* turn.h */,
 				87c0bacdd919aa13893b89c49f9b5777 /* md5.h */,
-				99211d95ebd61912226273d05aa235b9 /* utils.h */,
 				2f1af1b5ca9eaa5a5309245c45215508 /* udp-bsd.h */,
 				4ff1e1c3b03966163405c77af9c30e05 /* gstnicesrc.h */,
 				61f9b230f8184417ca65453b25a58e34 /* socks5.h */,
@@ -700,6 +696,8 @@
 		9621b8afcd906e9941a46f489f07dbc9 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				DA4B6A4B17D5FF9F009F813D /* ofxGstRTPUtils.cpp */,
+				DA4B6A4C17D5FF9F009F813D /* ofxGstRTPUtils.h */,
 				bc8e3eea1b97165390adc06ced6df426 /* ofxGstPixelsPool.h */,
 				90a3e54a7c993203937afaa41d712903 /* ofxGstVideoDoubleBuffer.h */,
 				42593364e6d9a2fe9147d200fadd55c0 /* ofxOscPacketPool.cpp */,
@@ -926,8 +924,6 @@
 				DA4B69DA17CF981C009F813D /* testApp.cpp */,
 				DA4B69DB17CF981C009F813D /* testApp.h */,
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
-				a842faa158fb434df69d04f84e9d6e7c /* Utils.cpp */,
-				2f711619107e8d547b8d902f46e6fead /* Utils.h */,
 				92cc54e75b72f9f4d622aa2f252af6d3 /* ofxFPS.h */,
 				0bc3e447f91a9f8b43f93b26396d39dd /* ofxFPS.cpp */,
 			);
@@ -974,7 +970,6 @@
 				78d67a00eb899fac0943059784f8212a /* ofxLabel.cpp */,
 				52afa1f08c420992caaae6484f64f920 /* ofxSlider.h */,
 				e112b3aebea2c091bf2b40ae5771826d /* ofxPanel.cpp */,
-				7b0a2d0273dd4beb9444020898dd6401 /* ofxBaseGui.h.orig */,
 				b87c60311ec1fe841c1ecd89b6d774d9 /* ofxLabel.h */,
 				907c5b5e104864a2d3a2574573796b13 /* ofxToggle.cpp */,
 				802251baf1b35b1d67b32fd0dec4da78 /* ofxSliderGroup.cpp */,
@@ -1209,11 +1204,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				E4B69E200A3A1BDC003C02F2 /* main.cpp in Sources */,
-				125ab007d29cecba2d2b3ce1e7e61a2c /* Utils.cpp in Sources */,
 				87325686eb55f57b24af6085a173f17d /* ofxFPS.cpp in Sources */,
 				483908258d00b98b4be69f0765fb3433 /* ofxLabel.cpp in Sources */,
 				f285eb3169f1566ca3d93c202ea4de6a /* ofxPanel.cpp in Sources */,
-				ba5d3c178526600cce420610744c1366 /* ofxBaseGui.h.orig in Sources */,
 				1cd33e884d9e3358252e82a14dc97644 /* ofxToggle.cpp in Sources */,
 				b56fe57cc35806596d38118c4b1b847e /* ofxSliderGroup.cpp in Sources */,
 				837220e80eb56cd44ad27f2a12ff4869 /* ofxSlider.cpp in Sources */,
@@ -1254,6 +1247,7 @@
 				DA4B6A3C17CF9B42009F813D /* ofGstUtils.cpp in Sources */,
 				DA4B6A3D17CF9B42009F813D /* ofGstVideoGrabber.cpp in Sources */,
 				DA4B6A3E17CF9B42009F813D /* ofGstVideoPlayer.cpp in Sources */,
+				DA4B6A4D17D5FF9F009F813D /* ofxGstRTPUtils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

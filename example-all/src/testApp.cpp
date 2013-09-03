@@ -1,6 +1,5 @@
 #include "testApp.h"
-#include "Utils.h"
-
+#include "ofxGstRTPUtils.h"
 //#define USE_16BIT_DEPTH
 
 #ifdef USE_16BIT_DEPTH
@@ -90,7 +89,7 @@ void testApp::setup(){
 	//ofSetBackgroundAuto(false);
 
 	if(depth16){
-		Utils::CreateColorGradientLUT(pow(2.f,14.f));
+		ofxGstRTPUtils::CreateColorGradientLUT(pow(2.f,14.f));
 	}
 
 	camera.setVFlip(true);
