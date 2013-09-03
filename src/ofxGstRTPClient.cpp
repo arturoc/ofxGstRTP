@@ -395,7 +395,7 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	GstElement * vqueue = gst_element_factory_make("queue","vqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	//g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
+	g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","vconvert");
@@ -487,7 +487,7 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	GstElement * dqueue = gst_element_factory_make("queue","dqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	//g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
+	g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
