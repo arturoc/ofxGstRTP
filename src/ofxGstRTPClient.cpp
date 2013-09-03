@@ -393,7 +393,10 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	vh264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
 	GstElement * vqueue = gst_element_factory_make("queue","vqueue");
-	g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
+
+	// TODO: this improves sync but makes the streams way more noisy
+	//g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
+
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","vconvert");
 	videoSink = (GstAppSink*)gst_element_factory_make("appsink","videosink");
@@ -482,7 +485,10 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	dh264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
 	GstElement * dqueue = gst_element_factory_make("queue","dqueue");
-	g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
+
+	// TODO: this improves sync but makes the streams way more noisy
+	//g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
+
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
 	depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
@@ -943,12 +949,17 @@ ofxOscMessage ofxGstRTPClient::getOscMessage(){
 	}
 
 	if(packet->IsMessage()){
-		osc::ReceivedMessage m(*packet);
-		appendMessage(ofMessage,m);
-
+		try{
+			osc::ReceivedMessage m(*packet);
+			appendMessage(ofMessage,m);
+		}catch(osc::MalformedMessageException & e){
+		}
 	}else if(packet->IsBundle()){
-		osc::ReceivedBundle b(*packet);
-		appendBundle(ofMessage,b);
+		try{
+			osc::ReceivedBundle b(*packet);
+			appendBundle(ofMessage,b);
+		}catch(osc::MalformedBundleException & e){
+		}
 	}else{
 		ofLogError() << "received packet of type != message not supported yet";
 	}
