@@ -1,0 +1,4 @@
+ofxOsc
+ofxXMPP
+ofxNice
+ofxGstRTP

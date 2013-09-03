@@ -11,10 +11,10 @@
 #include "ofColor.h"
 #include "ofPixels.h"
 
-class Utils {
+class ofxGstRTPUtils {
 public:
-	Utils();
-	virtual ~Utils();
+	ofxGstRTPUtils();
+	virtual ~ofxGstRTPUtils();
 
 	static void CreateColorGradientLUT(double maxDepth);
 

@@ -17,7 +17,7 @@
 #include <agent.h>
 
 #include "ofxGstPixelsPool.h"
-#include "Utils.h"
+#include "ofxGstRTPUtils.h"
 
 //  sends the output of v4l2src as h264 encoded RTP on port 5000, RTCP is sent on
 //  port 5001. The destination is 127.0.0.1.
@@ -655,7 +655,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
-	Utils::convertShortToColoredDepth(pixels,*pooledPixels,pow(2.f,14.f));
+	ofxGstRTPUtils::convertShortToColoredDepth(pixels,*pooledPixels,pow(2.f,14.f));
 
 	// wrap the pooled pixels into a gstreamer buffer and pass the release
 	// callback so when it's not needed anymore by gst we can return it to the pool

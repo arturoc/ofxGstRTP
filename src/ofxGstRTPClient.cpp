@@ -18,7 +18,7 @@
 #include <list>
 //#include <gst/gstnice.h>
 
-#include "Utils.h"
+#include "ofxGstRTPUtils.h"
 
 string ofxGstRTPClient::LOG_NAME="ofxGstRTPClient";
 
@@ -860,7 +860,7 @@ void ofxGstRTPClient::update(){
 	doubleBufferDepth.update();
 	doubleBufferOsc.update();
 	if(depth16 && doubleBufferDepth.isFrameNew()){
-		Utils::convertColoredDepthToShort(doubleBufferDepth.getPixels(),depth16Pixels,pow(2.f,14.f));
+		ofxGstRTPUtils::convertColoredDepthToShort(doubleBufferDepth.getPixels(),depth16Pixels,pow(2.f,14.f));
 	}
 }
 

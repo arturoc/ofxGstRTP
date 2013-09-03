@@ -5,12 +5,12 @@
  *      Author: arturo
  */
 
-#include "Utils.h"
+#include "ofxGstRTPUtils.h"
 
 
 ofColor * colorGradientLUT;
 
-void Utils::CreateColorGradientLUT(double maxDepth){
+void ofxGstRTPUtils::CreateColorGradientLUT(double maxDepth){
 	colorGradientLUT = new ofColor[(int)maxDepth];
 	ofFloatColor c;
 	for(int i=0;i<maxDepth;i++){
@@ -21,16 +21,16 @@ void Utils::CreateColorGradientLUT(double maxDepth){
 	}
 }
 
-Utils::Utils() {
+ofxGstRTPUtils::ofxGstRTPUtils() {
 	// TODO Auto-generated constructor stub
 
 }
 
-Utils::~Utils() {
+ofxGstRTPUtils::~ofxGstRTPUtils() {
 	// TODO Auto-generated destructor stub
 }
 
-void Utils::getColoredDepth(double maxDepth, unsigned short depth, ofColor& color) {
+void ofxGstRTPUtils::getColoredDepth(double maxDepth, unsigned short depth, ofColor& color) {
 	color = colorGradientLUT[depth];
 
 	/*color.r = (depth >> 8) & 0xFF;
@@ -39,7 +39,7 @@ void Utils::getColoredDepth(double maxDepth, unsigned short depth, ofColor& colo
 }
 
 
-void Utils::getRawDepthFromColored(double maxDepth, const ofColor & color, unsigned short & depth){
+void ofxGstRTPUtils::getRawDepthFromColored(double maxDepth, const ofColor & color, unsigned short & depth){
 	ofFloatColor f = color;
 	swap(f.r,f.g);
 	float h,s,b;
@@ -50,14 +50,14 @@ void Utils::getRawDepthFromColored(double maxDepth, const ofColor & color, unsig
 
 }
 
-void Utils::convertShortToColoredDepth(const ofShortPixels& rawDepth, ofPixels& coloredDepth, double maxDepth) {
+void ofxGstRTPUtils::convertShortToColoredDepth(const ofShortPixels& rawDepth, ofPixels& coloredDepth, double maxDepth) {
 	for(int i=0;i<rawDepth.size();i++){
 		double depth = rawDepth[i];
 		getColoredDepth(maxDepth,depth,*((ofColor*)&coloredDepth[i*3]));
 	}
 }
 
-void Utils::convertColoredDepthToShort(const ofPixels& coloredDepth, ofShortPixels& rawDepth, double maxDepth) {
+void ofxGstRTPUtils::convertColoredDepthToShort(const ofPixels& coloredDepth, ofShortPixels& rawDepth, double maxDepth) {
 	for(int i=0;i<rawDepth.size();i++){
 		const ofColor & color = *((ofColor*)&coloredDepth[i*3]);
 		getRawDepthFromColored(maxDepth,color,rawDepth[i]);
