@@ -15,6 +15,9 @@ void testApp::setup(){
 	calling = -1;
 
 	ofBackground(255);
+
+	bitrate.setup(rtp.getServer().audioBitrate);
+	bitrate.setPosition(10,10);
 }
 
 
@@ -30,6 +33,9 @@ void testApp::update(){
 
 //--------------------------------------------------------------
 void testApp::draw(){
+	bitrate.draw();
+
+	ofTranslate(0,40);
 	const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
 
 	for(size_t i=0;i<friends.size();i++){
@@ -85,7 +91,7 @@ void testApp::mouseDragged(int x, int y, int button){
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
 	if(calling==-1){
-		ofVec2f mouse(x,y);
+		ofVec2f mouse(x,y-40);
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
 		if(friendsRect.inside(mouse)){
 			calling = mouse.y/20;

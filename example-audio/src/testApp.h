@@ -8,6 +8,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxGui.h"
 #include "ofxGstXMPPRTP.h"
 
 class testApp : public ofBaseApp{
@@ -33,4 +34,5 @@ class testApp : public ofBaseApp{
 
 		ofxGstXMPPRTP rtp;
 		int calling;
+		ofxIntSlider bitrate;
 };

@@ -53,11 +53,13 @@ public:
 
 	ofParameterGroup parameters;
 	ofParameter<int> videoBitrate;
+	ofParameter<int> audioBitrate;
 
 	static string LOG_NAME;
 
 private:
 	void vBitRateChanged(int & bitrate);
+	void aBitRateChanged(int & bitrate);
 	void appendMessage( ofxOscMessage& message, osc::OutboundPacketStream& p );
 
 	ofGstUtils gst;

@@ -2,3 +2,4 @@ ofxOsc
 ofxXMPP
 ofxNice
 ofxGstRTP
+ofxGui

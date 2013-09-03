@@ -370,6 +370,8 @@ void ofxGstRTPServer::setup(string dest){
 	parameters.add(videoBitrate);
 	videoBitrate.set("video bitrate",1024,0,6000);
 	videoBitrate.addListener(this,&ofxGstRTPServer::vBitRateChanged);
+	audioBitrate.set("video bitrate",4000,0,650000);
+	audioBitrate.addListener(this,&ofxGstRTPServer::aBitRateChanged);
 
 }
 
@@ -380,6 +382,10 @@ void ofxGstRTPServer::setup(){
 void ofxGstRTPServer::vBitRateChanged(int & bitrate){
 	g_object_set(G_OBJECT(vEncoder),"bitrate",bitrate,NULL);
 	g_object_set(G_OBJECT(dEncoder),"bitrate",bitrate,NULL);
+}
+
+void ofxGstRTPServer::aBitRateChanged(int & bitrate){
+	g_object_set(G_OBJECT(aEncoder),"bitrate",bitrate,NULL);
 }
 
 void ofxGstRTPServer::play(){
