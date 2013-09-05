@@ -176,7 +176,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 
 		// opus encoder + opus pay
 		// FIXME: audio=0 is voice??
-		string aenc="opusenc name=aencoder audio=0 bitrate=4000 ! rtpopuspay pt=97";
+		string aenc="opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
 
 	// audio rtpc
 		string artpsink;
