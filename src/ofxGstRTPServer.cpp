@@ -103,7 +103,13 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,firstOscFrame(true)
 ,firstDepthFrame(true)
 {
-
+	videoBitrate.set("video bitrate",1024,0,6000);
+	videoBitrate.addListener(this,&ofxGstRTPServer::vBitRateChanged);
+	audioBitrate.set("audio bitrate",4000,0,650000);
+	audioBitrate.addListener(this,&ofxGstRTPServer::aBitRateChanged);
+	parameters.setName("gst rtp server");
+	parameters.add(videoBitrate);
+	parameters.add(audioBitrate);
 }
 
 ofxGstRTPServer::~ofxGstRTPServer() {
@@ -114,6 +120,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
+	videoBitrate = bitrate;
 	// video elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
@@ -123,10 +130,10 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 		string vcaps="video/x-raw,format=RGB,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string vsource= velem + " ! queue leaky=2 max-size-buffers=5 ! " + vcaps + " ! videoconvert name=vconvert1";
+		string vsource= velem + " ! queue leaky=2 max-size-buffers=100 ! " + vcaps + " ! videoconvert name=vconvert1";
 
 		// h264 encoder + rtp pay
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(bitrate) +" name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(bitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
 
 	// video rtpc
 	// ------------------
@@ -205,6 +212,8 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
+	videoBitrate = bitrate;
+
 	// depth elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
@@ -219,10 +228,10 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 		}
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string dsource= delem + " ! queue leaky=2 max-size-buffers=5 ! " + dcaps + " ! videoconvert name=dconvert1";
+		string dsource= delem + " ! queue leaky=2 max-size-buffers=100 ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(bitrate)+" name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(bitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
 
 	// depth rtpc
 	// ------------------
@@ -367,11 +376,6 @@ void ofxGstRTPServer::setup(string dest){
 			cout << properties[i]->name << endl;
 	}*/
 
-	parameters.add(videoBitrate);
-	videoBitrate.set("video bitrate",1024,0,6000);
-	videoBitrate.addListener(this,&ofxGstRTPServer::vBitRateChanged);
-	audioBitrate.set("video bitrate",4000,0,650000);
-	audioBitrate.addListener(this,&ofxGstRTPServer::aBitRateChanged);
 
 }
 

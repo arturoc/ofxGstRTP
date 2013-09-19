@@ -16,6 +16,8 @@
 #include <agent.h>
 #include "ofxNice.h"
 #include "ofxXMPP.h"
+#include "ofParameter.h"
+#include "ofParameterGroup.h"
 
 class ofxGstRTPClient: public ofGstAppSink {
 public:
@@ -46,8 +48,14 @@ public:
 	ofShortPixels & getPixelsDepth16();
 	ofxOscMessage getOscMessage();
 
+	ofParameter<int> latency;
+	ofParameter<bool> drop;
+	ofParameterGroup parameters;
+
 	static string LOG_NAME;
 private:
+	void latencyChanged(int & latency);
+	void dropChanged(bool & drop);
 
 	struct NetworkElementsProperties{
 		GstElement ** source;
@@ -132,6 +140,9 @@ private:
 	GstAppSink * depthSink;
 	GstAppSink * oscSink;
 
+	GstElement * vqueue;
+	GstElement * dqueue;
+
 	GstElement * vudpsrc;
 	GstElement * audpsrc;
 	GstElement * dudpsrc;
@@ -150,7 +161,6 @@ private:
 	ofShortPixels depth16Pixels;
 
 	string src;
-	int latency;
 
 	int videoSessionNumber;
 	int audioSessionNumber;

@@ -67,6 +67,8 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,videoSink(0)
 ,depthSink(0)
 ,oscSink(0)
+,vqueue(0)
+,dqueue(0)
 ,vudpsrc(0)
 ,audpsrc(0)
 ,dudpsrc(0)
@@ -76,7 +78,6 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,dudpsrcrtcp(0)
 ,oudpsrcrtcp(0)
 ,depth16(false)
-,latency(0)
 ,videoSessionNumber(-1)
 ,audioSessionNumber(-1)
 ,depthSessionNumber(-1)
@@ -97,6 +98,14 @@ ofxGstRTPClient::ofxGstRTPClient()
 {
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
+
+	latency.set("latency",0,0,2000);
+	latency.addListener(this,&ofxGstRTPClient::latencyChanged);
+	drop.set("drop",true);
+	drop.addListener(this,&ofxGstRTPClient::dropChanged);
+	parameters.setName("gst rtp client");
+	parameters.add(latency);
+	parameters.add(drop);
 }
 
 ofxGstRTPClient::~ofxGstRTPClient() {
@@ -392,10 +401,10 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	// rgb pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	vh264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
-	GstElement * vqueue = gst_element_factory_make("queue","vqueue");
+	vqueue = gst_element_factory_make("queue","vqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	g_object_set(vqueue,"leaky",2, "max-size-buffers",5,NULL);
+	g_object_set(vqueue,"leaky",2, "max-size-buffers",100,NULL);
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","vconvert");
@@ -484,10 +493,10 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	// depth pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	dh264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
-	GstElement * dqueue = gst_element_factory_make("queue","dqueue");
+	dqueue = gst_element_factory_make("queue","dqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	g_object_set(dqueue,"leaky",2, "max-size-buffers",5,NULL);
+	g_object_set(dqueue,"leaky",2, "max-size-buffers",100,NULL);
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
@@ -843,6 +852,14 @@ void ofxGstRTPClient::setup(int latency){
 	setup("",latency);
 }
 
+void ofxGstRTPClient::latencyChanged(int & latency){
+	g_object_set(rtpbin,"latency",latency,NULL);
+}
+
+void ofxGstRTPClient::dropChanged(bool & drop){
+	g_object_set(vqueue,"leaky",(drop?2:0),NULL);
+	g_object_set(dqueue,"leaky",(drop?2:0),NULL);
+}
 
 void ofxGstRTPClient::play(){
 	// pass the pipeline to ofGstVideoUtils so it starts it and allocates the needed resources

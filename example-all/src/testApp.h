@@ -67,4 +67,9 @@ class testApp : public ofBaseApp{
 		int calling;
 		string currentMessage;
 		deque<ofxXMPPMessage> messages;
+		enum GuiState{
+			Network,
+			Friends,
+			NumGuiStates
+		}guiState;
 };

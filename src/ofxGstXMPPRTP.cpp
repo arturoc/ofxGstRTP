@@ -38,6 +38,9 @@ ofxGstXMPPRTP::ofxGstXMPPRTP()
         plugins_registered = true;
     }
 #endif
+
+    parameters.add(client.parameters);
+    parameters.add(server.parameters);
 }
 
 ofxGstXMPPRTP::~ofxGstXMPPRTP() {

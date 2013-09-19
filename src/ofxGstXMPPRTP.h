@@ -38,6 +38,8 @@ public:
 	ofxGstRTPClient & getClient();
 	ofxXMPP & getXMPP();
 
+	ofParameterGroup parameters;
+
 private:
 	void onNiceLocalCandidatesGathered(const void * sender, vector<ofxICECandidate> & candidates);
 	void onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle);
