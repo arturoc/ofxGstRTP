@@ -852,6 +852,50 @@ void ofxGstRTPClient::setup(int latency){
 	setup("",latency);
 }
 
+void ofxGstRTPClient::close(){
+	gst.close();
+
+	width = 0;
+	height = 0;
+	pipeline = 0;
+	rtpbin = 0;
+	vh264depay = 0;
+	opusdepay = 0;
+	dh264depay = 0;
+	gstdepay = 0;
+	videoSink = 0;
+	depthSink = 0;
+	oscSink = 0;
+	vqueue = 0;
+	dqueue = 0;
+	vudpsrc = 0;
+	audpsrc = 0;
+	dudpsrc = 0;
+	oudpsrc = 0;
+	vudpsrcrtcp = 0;
+	audpsrcrtcp = 0;
+	dudpsrcrtcp = 0;
+	oudpsrcrtcp = 0;
+	depth16 = false;
+	videoSessionNumber = -1;
+	audioSessionNumber = -1;
+	depthSessionNumber = -1;
+	oscSessionNumber = -1;
+	videoSSRC = 0;
+	audioSSRC = 0;
+	depthSSRC = 0;
+	oscSSRC = 0;
+	videoReady = false;
+	audioReady = false;
+	depthReady = false;
+	oscReady = false;
+	lastSessionNumber = 0;
+	videoStream = NULL;
+	depthStream = NULL;
+	oscStream = NULL;
+	audioStream = NULL;
+}
+
 void ofxGstRTPClient::latencyChanged(int & latency){
 	g_object_set(rtpbin,"latency",latency,NULL);
 }

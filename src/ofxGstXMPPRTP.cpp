@@ -52,6 +52,7 @@ void ofxGstXMPPRTP::setup(int clientLatency){
 	client.setup(clientLatency);
 
 	ofAddListener(xmpp.jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
+	ofAddListener(xmpp.jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);
 
 }
 
@@ -64,11 +65,22 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 	remoteJingle = jingle;
 	isControlling = false;
 
+	ofNotifyEvent(callReceived,jingle.from,this);
+}
+
+void ofxGstXMPPRTP::onJingleTerminateReceived(ofxXMPPTerminateReason & reason){
+	server.close();
+	client.close();
+
+	ofNotifyEvent(callFinished,reason,this);
+}
+
+void ofxGstXMPPRTP::acceptCall(){
 	ofGstUtils::startGstMainLoop();
 	nice.setup("77.72.174.165",3478,false,ofGstUtils::getGstMainLoop());
 
-	for(size_t i=0;i<jingle.contents.size();i++){
-		if(jingle.contents[i].media=="video"){
+	for(size_t i=0;i<remoteJingle.contents.size();i++){
+		if(remoteJingle.contents[i].media=="video"){
 			ofLogNotice() << "adding video channel to client";
 			if(!videoStream){
 				videoStream = new ofxNiceStream();
@@ -77,7 +89,7 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 			videoStream->setup(nice,3);
 			nice.addStream(videoStream);
 			client.addVideoChannel(videoStream,640,480,30);
-		}else if(jingle.contents[i].media=="depth"){
+		}else if(remoteJingle.contents[i].media=="depth"){
 			ofLogNotice() << "adding depth channel to client";
 			if(!depthStream){
 				depthStream = new ofxNiceStream();
@@ -86,7 +98,7 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 			depthStream->setup(nice,3);
 			nice.addStream(depthStream);
 			client.addDepthChannel(depthStream,640,480,30);
-		}else if(jingle.contents[i].media=="audio"){
+		}else if(remoteJingle.contents[i].media=="audio"){
 			ofLogNotice() << "adding audio channel to client";
 			if(!audioStream){
 				audioStream = new ofxNiceStream();
@@ -95,7 +107,7 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 			audioStream->setup(nice,3);
 			nice.addStream(audioStream);
 			client.addAudioChannel(audioStream);
-		}else if(jingle.contents[i].media=="osc"){
+		}else if(remoteJingle.contents[i].media=="osc"){
 			ofLogNotice() << "adding osc channel to client";
 			if(!oscStream){
 				oscStream = new ofxNiceStream();
@@ -116,15 +128,15 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 	if(audioStream) audioStream->gatherLocalCandidates();
 	if(oscStream) oscStream->gatherLocalCandidates();
 
-	for(size_t i=0;i<jingle.contents.size();i++){
+	for(size_t i=0;i<remoteJingle.contents.size();i++){
 		ofxNiceStream * stream = NULL;
-		if(jingle.contents[i].media=="video"){
+		if(remoteJingle.contents[i].media=="video"){
 			stream = videoStream;
-		}else if(jingle.contents[i].media=="depth"){
+		}else if(remoteJingle.contents[i].media=="depth"){
 			stream = depthStream;
-		}else if(jingle.contents[i].media=="audio"){
+		}else if(remoteJingle.contents[i].media=="audio"){
 			stream = audioStream;
-		}else if(jingle.contents[i].media=="osc"){
+		}else if(remoteJingle.contents[i].media=="osc"){
 			stream = oscStream;
 		}
 		if(stream){
@@ -132,6 +144,10 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 			stream->setRemoteCandidates(remoteJingle.contents[i].transport.candidates);
 		}
 	}
+}
+
+void ofxGstXMPPRTP::refuseCall(){
+	xmpp.terminateRTPSession(remoteJingle.from, ofxXMPPTerminateDecline);
 }
 
 void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<ofxICECandidate> & candidates){
@@ -162,15 +178,6 @@ void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<o
 	content.transport.candidates = candidates;
 	localJingle.contents.push_back(content);
 
-	/*if(!isControlling){
-		for(size_t i=0;i<remoteJingle.contents.size();i++){
-			if(remoteJingle.contents[i].media==stream->getName()){
-				stream->setRemoteCredentials(remoteJingle.contents[i].transport.ufrag, remoteJingle.contents[i].transport.pwd);
-				stream->setRemoteCandidates(remoteJingle.contents[i].transport.candidates);
-				break;
-			}
-		}
-	}*/
 
 	if(stream==videoStream) videoGathered = true;
 	if(stream==audioStream) audioGathered = true;
@@ -208,6 +215,7 @@ void ofxGstXMPPRTP::onJingleInitiationAccepted(ofxXMPPJingleInitiation & jingle)
 	}
 
 	xmpp.ack(jingle);
+	ofNotifyEvent(callAccepted,jingle.from,this);
 }
 
 

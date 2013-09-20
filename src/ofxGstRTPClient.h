@@ -26,6 +26,7 @@ public:
 
 	void setup(string srcIP, int latency);
 	void setup(int latency);
+	void close();
 
 	void addAudioChannel(int port);
 	void addVideoChannel(int port, int w, int h, int fps);

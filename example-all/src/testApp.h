@@ -25,6 +25,9 @@ class testApp : public ofBaseApp{
 		bool onFriendSelected(const void *sender);
 		void onConnectionStateChanged(ofxXMPPConnectionState & connectionState);
 		void onNewMessage(ofxXMPPMessage & msg);
+		void onCallReceived(string & from);
+		void onCallAccepted(string & from);
+		void onCallFinished(ofxXMPPTerminateReason & reason);
 
 		void keyPressed(int key);
 		void keyReleased(int key);
@@ -64,7 +67,15 @@ class testApp : public ofBaseApp{
 		ofxCvContourFinder contourFinder;
 		ofPolyline remoteContour;
 
+		enum CallingState{
+			Calling,
+			ReceivingCall,
+			InCall,
+			Disconnected
+		}callingState;
+		string callFrom;
 		int calling;
+
 		string currentMessage;
 		deque<ofxXMPPMessage> messages;
 		enum GuiState{
@@ -72,4 +83,8 @@ class testApp : public ofBaseApp{
 			Friends,
 			NumGuiStates
 		}guiState;
+
+		ofSoundPlayer ring;
+		unsigned long long lastRing;
+		ofRectangle ok,cancel;
 };

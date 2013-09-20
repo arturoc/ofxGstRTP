@@ -40,10 +40,17 @@ public:
 
 	ofParameterGroup parameters;
 
+	ofEvent<string> callReceived;
+	ofEvent<ofxXMPPTerminateReason> callFinished;
+	ofEvent<string> callAccepted;
+	void acceptCall();
+	void refuseCall();
+
 private:
 	void onNiceLocalCandidatesGathered(const void * sender, vector<ofxICECandidate> & candidates);
 	void onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle);
 	void onJingleInitiationAccepted(ofxXMPPJingleInitiation & jingle);
+	void onJingleTerminateReceived(ofxXMPPTerminateReason & reason);
 
 	ofxXMPP xmpp;
 	ofxNiceAgent nice;

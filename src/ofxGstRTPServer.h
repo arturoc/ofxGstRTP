@@ -30,6 +30,7 @@ public:
 
 	void setup(string destinationAddress);
 	void setup();
+	void close();
 
 	void addVideoChannel(int port, int w, int h, int fps, int bitrate);
 	void addAudioChannel(int port);

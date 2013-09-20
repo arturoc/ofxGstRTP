@@ -120,7 +120,9 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
+	videoBitrate.disableEvents();
 	videoBitrate = bitrate;
+	videoBitrate.enableEvents();
 	// video elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
@@ -212,7 +214,9 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
+	videoBitrate.disableEvents();
 	videoBitrate = bitrate;
+	videoBitrate.enableEvents();
 
 	// depth elements
 	// ------------------
@@ -381,6 +385,38 @@ void ofxGstRTPServer::setup(string dest){
 
 void ofxGstRTPServer::setup(){
 	setup("");
+}
+
+void ofxGstRTPServer::close(){
+	gst.close();
+	vRTPsink = NULL;
+	vRTPCsink = NULL;
+	vRTPCsrc = NULL;
+	vEncoder = NULL;
+	dEncoder = NULL;
+	aEncoder = NULL;
+	appSrcVideoRGB = NULL;
+	appSrcDepth = NULL;
+	appSrcOsc = NULL;
+	bufferPool = NULL;
+	bufferPoolDepth = NULL;
+	fps = 0;
+	prevTimestamp = 0;
+	numFrame = 0;
+	prevTimestampDepth = 0;
+	numFrameDepth = 0;
+	prevTimestampOsc = 0;
+	numFrameOsc = 0;
+	width = 0;
+	height = 0;
+	lastSessionNumber = 0;
+	videoStream = NULL;
+	depthStream = NULL;
+	oscStream = NULL;
+	audioStream = NULL;
+	firstVideoFrame = true;
+	firstOscFrame = true;
+	firstDepthFrame = true;
 }
 
 void ofxGstRTPServer::vBitRateChanged(int & bitrate){

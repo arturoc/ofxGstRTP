@@ -102,8 +102,40 @@ void testApp::setup(){
 	ofAddListener(rtp.getXMPP().newMessage,this,&testApp::onNewMessage);
 
 	guiState = Friends;
+
+	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+
+	callingState = Disconnected;
+
+	ring.loadSound("ring.wav",false);
+	lastRing = 0;
 }
 
+void testApp::onCallReceived(string & from){
+	callFrom = ofSplitString(from,"/")[0];
+	callingState = ReceivingCall;
+}
+
+void testApp::onCallAccepted(string & from){
+	if(callingState == Calling){
+		callingState = InCall;
+	}
+}
+
+void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
+	if(callingState==Calling){
+		ofSystemAlertDialog("Call declined");
+	}
+	callingState = Disconnected;
+
+	/*rtp.setup(200);
+	rtp.addSendVideoChannel(640,480,30,300);
+	rtp.addSendDepthChannel(640,480,30,300);
+	rtp.addSendOscChannel();
+	rtp.addSendAudioChannel();*/
+}
 
 void testApp::onNewMessage(ofxXMPPMessage & msg){
 	messages.push_back(msg);
@@ -229,6 +261,14 @@ void testApp::update(){
 		}
 	}*/
 
+	if(callingState==ReceivingCall || callingState==Calling){
+		unsigned long long now = ofGetElapsedTimeMillis();
+		if(now - lastRing>2000){
+			lastRing = now;
+			ring.play();
+		}
+	}
+
 }
 
 //--------------------------------------------------------------
@@ -294,6 +334,26 @@ void testApp::draw(){
 		break;
 	}
 
+	if(callingState==ReceivingCall){
+		ofSetColor(30,30,30,170);
+		ofRect(0,0,ofGetWidth(),ofGetHeight());
+		ofSetColor(255,255,255);
+		ofRectangle popup(ofGetWidth()*.5-200,ofGetHeight()*.5-100,400,200);
+		ofRect(popup);
+		ofSetColor(0);
+		ofDrawBitmapString("Receiving call from " + callFrom,popup.x+30,popup.y+30);
+
+		ok.set(popup.x+popup.getWidth()*.25-50,popup.getCenter().y+20,100,30);
+		cancel.set(popup.x+popup.getWidth()*.75-50,popup.getCenter().y+20,100,30);
+		ofRect(ok);
+		ofRect(cancel);
+
+		ofSetColor(255);
+		ofDrawBitmapString("Ok",ok.x+30,ok.y+20);
+		ofDrawBitmapString("Decline",cancel.x+30,cancel.y+20);
+
+	}
+
 	ofSetColor(255);
 	ofRect(ofGetWidth()-300,0,300,ofGetHeight());
 	if(guiState==Friends){
@@ -303,13 +363,19 @@ void testApp::draw(){
 		for(;i<friends.size();i++){
 			ofSetColor(0);
 			if(calling==i){
-				if(rtp.getXMPP().getJingleState()==ofxXMPP::SessionAccepted){
-					ofSetColor(127);
-				}else{
+				if(callingState == Calling){
 					ofSetColor(ofMap(sin(ofGetElapsedTimef()*2),-1,1,50,127));
+				}else if(callingState==InCall){
+					ofSetColor(127);
 				}
 				ofRect(ofGetWidth()-300,calling*20+5,300,20);
 				ofSetColor(255);
+			}else{
+				if(callingState==InCall && friends[i].userName==callFrom){
+					ofSetColor(127);
+					ofRect(ofGetWidth()-300,i*20+5,300,20);
+					ofSetColor(255);
+				}
 			}
 			ofDrawBitmapString(friends[i].userName,ofGetWidth()-250,20+20*i);
 			if(friends[i].show==ofxXMPPShowAvailable){
@@ -397,12 +463,21 @@ void testApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
-	if(calling==-1 && guiState==Friends){
-		ofVec2f mouse(x,y);
+	ofVec2f mouse(x,y);
+	if(callingState==Disconnected && guiState==Friends){
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
 		if(friendsRect.inside(mouse)){
 			calling = mouse.y/20;
 			rtp.call(rtp.getXMPP().getFriends()[calling]);
+			callingState = Calling;
+		}
+	}else if(callingState == ReceivingCall){
+		if(ok.inside(mouse)){
+			rtp.acceptCall();
+			callingState = InCall;
+		}else if(cancel.inside(mouse)){
+			rtp.refuseCall();
+			callingState = Disconnected;
 		}
 	}
 }
