@@ -147,7 +147,7 @@ void ofxGstXMPPRTP::acceptCall(){
 }
 
 void ofxGstXMPPRTP::refuseCall(){
-	xmpp.terminateRTPSession(remoteJingle.from, ofxXMPPTerminateDecline);
+	xmpp.terminateRTPSession(remoteJingle, ofxXMPPTerminateDecline);
 }
 
 void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<ofxICECandidate> & candidates){
