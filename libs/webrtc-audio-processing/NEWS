@@ -1,0 +1,5 @@
+Release 0.1
+-----------
+
+Initial release, consisting of the WebRTC AudioProcessing module with a
+distributor-friendly build system.

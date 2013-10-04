@@ -8,6 +8,22 @@ void testApp::setup(){
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
+	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
+
+	ap = webrtc::AudioProcessing::Create(0);
+	ap->Initialize();
+	ap->set_num_channels(2,2);
+	ap->set_num_reverse_channels(2);
+	ap->set_sample_rate_hz(32000);
+	ap->echo_cancellation()->Enable(true);
+	ap->noise_suppression()->Enable(true);
+	ap->high_pass_filter()->Enable(true);
+	ap->voice_detection()->Enable(true);
+
+	rtp.getServer().setWebRTCAudioProcessing(ap);
+	rtp.getClient().setWebRTCAudioProcessing(ap);
+	rtp.getServer().setRTPClient(rtp.getClient());
 	rtp.setup(0);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
@@ -18,6 +34,21 @@ void testApp::setup(){
 
 	bitrate.setup(rtp.getServer().audioBitrate);
 	bitrate.setPosition(10,10);
+
+	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+}
+
+void testApp::onCallReceived(string & from){
+	rtp.acceptCall();
+}
+
+void testApp::onCallAccepted(string & from){
+
+}
+
+void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
 }
 
 

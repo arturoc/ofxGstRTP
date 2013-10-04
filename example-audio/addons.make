@@ -3,3 +3,4 @@ ofxXMPP
 ofxNice
 ofxGstRTP
 ofxGui
+ofxEchoCancel

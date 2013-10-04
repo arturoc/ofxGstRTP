@@ -9,6 +9,7 @@
 #define OFXGSTRTPSERVER_H_
 
 #include "ofGstUtils.h"
+#include <gst/app/gstappsink.h>
 #include "ofParameter.h"
 #include "ofParameterGroup.h"
 
@@ -19,6 +20,11 @@
 #include "ofxNice.h"
 #include "ofxXMPP.h"
 
+#include "audio_processing.h"
+#include "module_common_types.h"
+
+class ofxGstRTPClient;
+
 template<typename PixelType>
 class ofxGstBufferPool;
 
@@ -28,6 +34,9 @@ public:
 	ofxGstRTPServer();
 	virtual ~ofxGstRTPServer();
 
+
+	void setRTPClient(ofxGstRTPClient & client);
+	void setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing);
 	void setup(string destinationAddress);
 	void setup();
 	void close();
@@ -63,7 +72,13 @@ private:
 	void aBitRateChanged(int & bitrate);
 	void appendMessage( ofxOscMessage& message, osc::OutboundPacketStream& p );
 
+	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_buffer_from_audio(GstAppSink * elt, void * data);
+
+
 	ofGstUtils gst;
+	ofGstUtils gstAudioIn;
 	GstElement * vRTPsink;
 	GstElement * vRTPCsink;
 	GstElement * vRTPCsrc;
@@ -86,6 +101,8 @@ private:
 	GstElement * appSrcVideoRGB;
 	GstElement * appSrcDepth;
 	GstElement * appSrcOsc;
+	GstElement * appSinkAudio;
+	GstElement * appSrcAudio;
 	ofxGstBufferPool<unsigned char> * bufferPool;
 	ofxGstBufferPool<unsigned char> * bufferPoolDepth;
 	ofxOscPacketPool oscPacketPool;
@@ -96,6 +113,8 @@ private:
 	unsigned long long numFrameDepth;
 	GstClockTime prevTimestampOsc;
 	unsigned long long numFrameOsc;
+	GstClockTime prevTimestampAudio;
+	unsigned long long numFrameAudio;
 	int width, height;
 
 	string pipelineStr;
@@ -110,6 +129,14 @@ private:
 	bool firstVideoFrame;
 	bool firstOscFrame;
 	bool firstDepthFrame;
+	bool firstAudioFrame;
+
+	webrtc::AudioProcessing * audioProcessing;
+	GstMapInfo mapinfo;
+	webrtc::AudioFrame audioFrame;
+	ofxGstRTPClient * client;
+	GstBuffer * prevAudioBuffer;
+	void sendAudioOut(webrtc::AudioFrame & frame);
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */

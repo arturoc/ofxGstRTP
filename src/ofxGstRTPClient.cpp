@@ -95,6 +95,11 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,depthStream(NULL)
 ,oscStream(NULL)
 ,audioStream(NULL)
+,audioProcessing(0)
+,prevTimestampAudio(0)
+,numFrameAudio(0)
+,firstAudioFrame(true)
+,prevAudioBuffer(0)
 {
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
@@ -444,16 +449,6 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 	audioSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
-
-	// audio OPUS, RTP depay and decoder
-	string adec="rtpopusdepay ! opusdec";
-	// audio format conversion (float -> int or similar) + resampling (48000 -> 44100)
-#ifdef TARGET_LINUX
-	string asink="audioconvert ! audioresample ! pulsesink stream-properties=\"props,media.role=phone,filter.want=echo-cancel\"";
-#else
-	string asink="audioconvert ! audioresample ! autoaudiosink";
-#endif
-
 	// create and add audio elements and connect them to the correct pad.
 	// audio pipeline to be connected to the corresponding recv_rtp_send pad:
 	// Linux:
@@ -465,20 +460,66 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 	GstElement * opusdec = gst_element_factory_make("opusdec","opusdec1");
 	GstElement * audioconvert = gst_element_factory_make("audioconvert","audioconvert1");
 	GstElement * audioresample = gst_element_factory_make("audioresample","audioresample1");
+	GstElement * audioconvert2 = gst_element_factory_make("audioconvert","audioconvert2");
+	GstElement * audioresample2 = gst_element_factory_make("audioresample","audioresample2");
+	GstElement * queue = gst_element_factory_make("queue","queue");
+	GstElement * audioechosink = gst_element_factory_make("appsink","audioechosink");
+	audioechosrc = gst_element_factory_make("appsrc","audioechosrc");
+	g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,NULL);
+
 #ifdef TARGET_LINUX
 	GstElement * audiosink = gst_element_factory_make("pulsesink","pulsesink1");
-	GstStructure * pulseProperties = gst_structure_new("props","media.role",G_TYPE_STRING,"phone","filter.want",G_TYPE_STRING,"echo-cancel",NULL);
+	GstStructure * pulseProperties = gst_structure_new("props","media.role",G_TYPE_STRING,"phone",NULL);//"filter.want",G_TYPE_STRING,"echo-cancel",NULL);
 	g_object_set(audiosink,"stream-properties",pulseProperties,NULL);
+
+	/*GstElement * audiosink = gst_element_factory_make("filesink","pulsesink1");
+	g_object_set(audiosink,"location",(ofGetTimestampString()+".raw").c_str(),NULL);*/
 #else
 	GstElement * audiosink = gst_element_factory_make("autoaudiosink","autoaudiosink1");
 #endif
 
+	// set format for video appsink to rgb
+	GstCaps * caps = NULL;
+	caps = gst_caps_new_simple("audio/x-raw",
+					"format",G_TYPE_STRING,"S16LE",
+					"rate",G_TYPE_INT,32000,
+					"channels", G_TYPE_INT,2,
+					"layout",G_TYPE_STRING,"interleaved",
+					//"channel-mask",GST_TYPE_BITMASK,0x0000000000000003,
+					NULL);
+
+	if(!caps){
+		ofLogError(LOG_NAME) << "couldn't get caps";
+	}else{
+		gst_app_sink_set_caps(GST_APP_SINK(audioechosink),caps);
+		gst_app_src_set_caps(GST_APP_SRC(audioechosrc),caps);
+
+	}
+	 gst_caps_unref(caps);
+
+	GstAppSinkCallbacks gstCallbacks;
+	gstCallbacks.eos = &on_eos_from_audio;
+	gstCallbacks.new_preroll = &on_new_preroll_from_audio;
+	gstCallbacks.new_sample = &on_new_buffer_from_audio;
+	gst_app_sink_set_callbacks(GST_APP_SINK(audioechosink), &gstCallbacks, this, NULL);
+	gst_app_sink_set_emit_signals(GST_APP_SINK(audioechosink),0);
 
 	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), opusdepay, opusdec, audioconvert, audioresample, audiosink, NULL);
-	if(!gst_element_link_many(opusdepay, opusdec, audioconvert, audioresample, audiosink, NULL)){
+	gst_bin_add_many(GST_BIN(pipeline), opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL);
+	if(!gst_element_link_many(opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link audio elements";
+	}else{
+		ofLogNotice(LOG_NAME) << "linked audio till audioechosink";
 	}
+
+	gst_bin_add_many(GST_BIN(pipelineAudioOut), audioechosrc, audioconvert2, audioresample2, audiosink, NULL);
+	if(!gst_element_link_many(audioechosrc, audiosink, NULL)){
+		ofLogError(LOG_NAME) << "couldn't link audio elements";
+	}else{
+		ofLogNotice(LOG_NAME) << "linked audio till audiosink";
+	}
+
+
 
 }
 
@@ -824,11 +865,17 @@ void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
 
 }
 
+void ofxGstRTPClient::setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing){
+	this->audioProcessing = audioProcessing;
+}
+
 void ofxGstRTPClient::setup(string srcIP, int latency){
 	this->src = srcIP;
 	this->latency = latency;
 
 	pipeline = gst_pipeline_new("rtpclientpipeline");
+	pipelineAudioOut = gst_pipeline_new("audioclientpipeline");
+
 	rtpbin	 = gst_element_factory_make("rtpbin","rtpbin");
 	g_object_set(rtpbin,"latency",latency,NULL);
 
@@ -838,6 +885,7 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 
 	// set this instance as listener to receive messages from the pipeline
 	gst.setSinkListener(this);
+	gstAudioOut.setSinkListener(this);
 
 	doubleBufferVideo.setup(640,480,3);
 	if(depth16){
@@ -854,6 +902,7 @@ void ofxGstRTPClient::setup(int latency){
 
 void ofxGstRTPClient::close(){
 	gst.close();
+	gstAudioOut.close();
 
 	width = 0;
 	height = 0;
@@ -908,6 +957,7 @@ void ofxGstRTPClient::dropChanged(bool & drop){
 void ofxGstRTPClient::play(){
 	// pass the pipeline to ofGstVideoUtils so it starts it and allocates the needed resources
 	gst.setPipelineWithSink(pipeline,NULL,true);
+	gstAudioOut.setPipelineWithSink(pipelineAudioOut,NULL,true);
 
 	// connect callback to the on-ssrc-active signal
 	g_signal_connect(gst.getGstElementByName("rtpbin"),"pad-added", G_CALLBACK(&ofxGstRTPClient::on_pad_added),this);
@@ -915,10 +965,16 @@ void ofxGstRTPClient::play(){
 	g_signal_connect(gst.getGstElementByName("rtpbin"),"on-bye-ssrc",G_CALLBACK(&ofxGstRTPClient::on_bye_ssrc_handler),this);
 	g_signal_connect(gst.getGstElementByName("rtpbin"),"on-new-ssrc",G_CALLBACK(&ofxGstRTPClient::on_new_ssrc_handler),this);
 
+	if(audioechosrc){
+		gst_app_src_set_stream_type((GstAppSrc*)audioechosrc,GST_APP_STREAM_TYPE_STREAM);
+	}
+
+	gstAudioOut.startPipeline();
+	gstAudioOut.play();
 
 	gst.startPipeline();
-
 	gst.play();
+
 }
 
 
@@ -997,6 +1053,11 @@ void appendBundle(ofxOscMessage & ofMessage, osc::ReceivedBundle & b){
 	}
 }
 
+
+u_int64_t ofxGstRTPClient::getAudioOutLatencyMs(){
+	return gstAudioOut.getMinLatencyNanos()*0.000001;
+}
+
 ofxOscMessage ofxGstRTPClient::getOscMessage(){
 
 	osc::ReceivedPacket * packet = doubleBufferOsc.getOscReceivedPacket();
@@ -1070,6 +1131,7 @@ bool ofxGstRTPClient::on_message(GstMessage * msg){
 		return true;
 	}
 	default:
+		ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
 		return false;
 	}
 }
@@ -1159,5 +1221,100 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_osc(GstAppSink * elt, void * d
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_osc(GstAppSink * elt){
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
 	doubleBufferOsc.newSample(sample);
+	return GST_FLOW_OK;
+}
+
+void ofxGstRTPClient::on_eos_from_audio(GstAppSink * elt, void * rtpClient){
+
+}
+
+
+GstFlowReturn ofxGstRTPClient::on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient){
+	return GST_FLOW_OK;
+}
+
+void ofxGstRTPClient::sendAudioOut(webrtc::AudioFrame & frame){
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gstAudioOut.getPipeline()));
+	gst_object_ref(clock);
+	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gstAudioOut.getPipeline());
+	gst_object_unref (clock);
+
+	if(firstAudioFrame){
+		prevTimestampAudio = now;
+		firstAudioFrame = false;
+		return;
+	}
+
+	//cout << "client sending " << frame._payloadDataLengthInSamples << " samples at " << (int)(now*0.000001) << "ms" << endl;
+	int size = frame._payloadDataLengthInSamples*2*frame._audioChannel;
+	GstBuffer * echoCancelledBuffer = gst_buffer_new_allocate(NULL,size,NULL);
+	gst_buffer_fill(echoCancelledBuffer,0,frame._payloadData,size);
+	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
+	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
+	GST_BUFFER_DTS (echoCancelledBuffer) = now;
+	GST_BUFFER_PTS (echoCancelledBuffer) = now;
+	GST_BUFFER_DURATION(echoCancelledBuffer) = now-prevTimestampAudio;
+	prevTimestampAudio = now;
+
+
+	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)audioechosrc, echoCancelledBuffer);
+	if (flow_return != GST_FLOW_OK) {
+		ofLogError(LOG_NAME) << "error pushing audio buffer: flow_return was " << flow_return;
+	}
+}
+
+GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void * data){
+	static int posInBuffer=0;
+	ofxGstRTPClient * client = (ofxGstRTPClient *)data;
+	if(client->audioProcessing){
+		GstSample * sample = gst_app_sink_pull_sample(elt);
+		GstBuffer * buffer = gst_sample_get_buffer(sample);
+
+
+		const int numChannels = 2;
+		const int samplerate = 32000;
+		int buffersize = gst_buffer_get_size(buffer)/2/numChannels;
+		const int samplesIn10Ms = samplerate/100;
+		static short auxBuffer[samplesIn10Ms*numChannels];
+
+		if(client->prevAudioBuffer){
+			gst_buffer_map (client->prevAudioBuffer, &client->mapinfo, GST_MAP_READ);
+			int prevBuffersize = gst_buffer_get_size(client->prevAudioBuffer)/2/numChannels;
+			memcpy(auxBuffer,((short*)client->mapinfo.data)+(posInBuffer*numChannels),(prevBuffersize-posInBuffer)*numChannels*sizeof(short));
+			gst_buffer_unmap(client->prevAudioBuffer,&client->mapinfo);
+			gst_buffer_unref(client->prevAudioBuffer);
+
+			gst_buffer_map (buffer, &client->mapinfo, GST_MAP_READ);
+			memcpy(auxBuffer+((prevBuffersize-posInBuffer)*numChannels),((short*)client->mapinfo.data),(samplesIn10Ms-(prevBuffersize-posInBuffer))*numChannels*sizeof(short));
+
+			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
+			//cout << "analyze reverse returned " <<
+			client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
+			client->sendAudioOut(client->audioFrame);
+			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
+		}else{
+			gst_buffer_map (buffer, &client->mapinfo, GST_MAP_READ);
+			posInBuffer = 0;
+		}
+
+		while(posInBuffer+samplesIn10Ms<=buffersize){
+			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)client->mapinfo.data) + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
+			//cout << "analyze reverse returned " <<
+			client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
+			client->sendAudioOut(client->audioFrame);
+			posInBuffer+=samplesIn10Ms;
+		};
+
+		if(posInBuffer<buffersize){
+			client->prevAudioBuffer = buffer;
+			gst_buffer_ref(client->prevAudioBuffer);
+		}else{
+			client->prevAudioBuffer = 0;
+		}
+
+		gst_buffer_unmap(buffer,&client->mapinfo);
+		gst_sample_unref(sample);
+
+	}
 	return GST_FLOW_OK;
 }

@@ -19,11 +19,15 @@
 #include "ofParameter.h"
 #include "ofParameterGroup.h"
 
+#include "audio_processing.h"
+#include "module_common_types.h"
+
 class ofxGstRTPClient: public ofGstAppSink {
 public:
 	ofxGstRTPClient();
 	virtual ~ofxGstRTPClient();
 
+	void setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing);
 	void setup(string srcIP, int latency);
 	void setup(int latency);
 	void close();
@@ -48,6 +52,8 @@ public:
 	ofPixels & getPixelsDepth();
 	ofShortPixels & getPixelsDepth16();
 	ofxOscMessage getOscMessage();
+
+	u_int64_t getAudioOutLatencyMs();
 
 	ofParameter<int> latency;
 	ofParameter<bool> drop;
@@ -105,6 +111,11 @@ private:
 	static GstFlowReturn on_new_preroll_from_osc(GstAppSink * elt, void * rtpClient);
 	static GstFlowReturn on_new_buffer_from_osc(GstAppSink * elt, void * rtpClient);
 
+	// audio echo cancel callbacks
+	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_buffer_from_audio(GstAppSink * elt, void * rtpClient);
+
 	// video instance callbacks
 	void on_eos_from_video(GstAppSink * elt){};
 	GstFlowReturn on_new_preroll_from_video(GstAppSink * elt){return GST_FLOW_OK;}
@@ -126,10 +137,12 @@ private:
 	void linkAudioPad(GstPad * pad);
 
 	ofGstUtils gst;
+	ofGstUtils gstAudioOut;
 	int width, height;
 	GstMapInfo mapinfo;
 
 	GstElement * pipeline;
+	GstElement * pipelineAudioOut;
 	GstElement * rtpbin;
 
 	GstElement * vh264depay;
@@ -152,6 +165,8 @@ private:
 	GstElement * audpsrcrtcp;
 	GstElement * dudpsrcrtcp;
 	GstElement * oudpsrcrtcp;
+
+	GstElement * audioechosrc;
 
 
 	ofxGstVideoDoubleBuffer<unsigned char> doubleBufferVideo;
@@ -186,6 +201,15 @@ private:
 	ofxNiceStream * audioStream;
 	ofxXMPPJingleInitiation remoteJingle;
 	void onNiceLocalCandidatesGathered(vector<ofxICECandidate> & candidates);
+
+	webrtc::AudioProcessing * audioProcessing;
+	webrtc::AudioFrame audioFrame;
+
+	GstClockTime prevTimestampAudio;
+	unsigned long long numFrameAudio;
+	bool firstAudioFrame;
+	GstBuffer * prevAudioBuffer;
+	void sendAudioOut(webrtc::AudioFrame & frame);
 };
 
 #endif /* OFXGSTRTPCLIENT_H_ */

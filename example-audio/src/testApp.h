@@ -10,6 +10,7 @@
 #include "ofMain.h"
 #include "ofxGui.h"
 #include "ofxGstXMPPRTP.h"
+#include "audio_processing.h"
 
 class testApp : public ofBaseApp{
 
@@ -32,7 +33,12 @@ class testApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 
+		void onCallReceived(string & from);
+		void onCallAccepted(string & from);
+		void onCallFinished(ofxXMPPTerminateReason & reason);
+
 		ofxGstXMPPRTP rtp;
 		int calling;
 		ofxIntSlider bitrate;
+		webrtc::AudioProcessing * ap;
 };
