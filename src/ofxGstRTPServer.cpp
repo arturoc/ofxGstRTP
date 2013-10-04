@@ -921,7 +921,7 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			server->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 			server->audioProcessing->set_stream_delay_ms(delay);
 			//cout << "process stream returned ";
-			//server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
+			server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
 			/*if(!server->audioProcessing->voice_detection()->stream_has_voice()){
 				memset(server->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
 			}*/
@@ -936,7 +936,7 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			server->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)server->mapinfo.data)  + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 			server->audioProcessing->set_stream_delay_ms(delay);
 			//cout << "process stream returned ";
-			//server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
+			server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
 			/*if(!server->audioProcessing->voice_detection()->stream_has_voice()){
 				memset(server->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
 			}*/

@@ -1289,7 +1289,7 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 
 			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 			//cout << "analyze reverse returned " <<
-			client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
+			//client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
 			client->sendAudioOut(client->audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
 		}else{
@@ -1300,7 +1300,7 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 		while(posInBuffer+samplesIn10Ms<=buffersize){
 			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)client->mapinfo.data) + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 			//cout << "analyze reverse returned " <<
-			client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
+			//client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
 			client->sendAudioOut(client->audioFrame);
 			posInBuffer+=samplesIn10Ms;
 		};
