@@ -922,9 +922,9 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			server->audioProcessing->set_stream_delay_ms(delay);
 			//cout << "process stream returned ";
 			server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
-			if(!server->audioProcessing->voice_detection()->stream_has_voice()){
+			/*if(!server->audioProcessing->voice_detection()->stream_has_voice()){
 				memset(server->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
-			}
+			}*/
 			server->sendAudioOut(server->audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
 		}else{
@@ -937,9 +937,9 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			server->audioProcessing->set_stream_delay_ms(delay);
 			//cout << "process stream returned ";
 			server->audioProcessing->ProcessStream(&server->audioFrame);// << endl;
-			if(!server->audioProcessing->voice_detection()->stream_has_voice()){
+			/*if(!server->audioProcessing->voice_detection()->stream_has_voice()){
 				memset(server->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
-			}
+			}*/
 			server->sendAudioOut(server->audioFrame);
 			posInBuffer+=samplesIn10Ms;
 		};

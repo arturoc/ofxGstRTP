@@ -19,7 +19,7 @@ void testApp::setup(){
 	ap->echo_cancellation()->Enable(true);
 	ap->noise_suppression()->Enable(true);
 	//ap->high_pass_filter()->Enable(true);
-	ap->voice_detection()->Enable(true);
+	//ap->voice_detection()->Enable(true);
 
 	rtp.getServer().setWebRTCAudioProcessing(ap);
 	rtp.getClient().setWebRTCAudioProcessing(ap);
