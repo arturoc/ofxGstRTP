@@ -889,14 +889,14 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 		GstBuffer * buffer = gst_sample_get_buffer(sample);
 
 
-		/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(server->gstAudioIn.getPipeline()));
+		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(server->gstAudioIn.getPipeline()));
 		gst_object_ref(clock);
 		GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(server->gstAudioIn.getPipeline());
 		gst_object_unref (clock);
 		u_int64_t t_capture = GST_BUFFER_TIMESTAMP(buffer)*0.000001;
 		u_int64_t t_process = now*0.000001;
-		int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
-		int delay = server->gstAudioIn.getMinLatencyNanos()*0.000001 + server->client->getAudioOutLatencyMs();
+		int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();
+		//int delay = server->gstAudioIn.getMinLatencyNanos()*0.000001 + server->client->getAudioOutLatencyMs();
 		//delay = 500;
 
 		const int numChannels = 2;
@@ -952,10 +952,10 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			server->prevAudioBuffer = 0;
 		}
 
-		if(server->audioProcessing->echo_cancellation()->stream_has_echo()){
+		/*if(server->audioProcessing->echo_cancellation()->stream_has_echo()){
 			cout << "echo? " << server->audioProcessing->echo_cancellation()->stream_has_echo() << " with (" << server->gstAudioIn.getMinLatencyNanos() << ") +" << server->client->getAudioOutLatencyMs() << " = " << delay << endl;
 			cout << "audioin latency " << server->gstAudioIn.getMinLatencyNanos() << endl;
-		}
+		}*/
 
 		gst_buffer_unmap(buffer,&server->mapinfo);
 		gst_sample_unref(sample);

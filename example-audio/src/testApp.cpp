@@ -18,7 +18,7 @@ void testApp::setup(){
 	ap->set_sample_rate_hz(32000);
 	ap->echo_cancellation()->Enable(true);
 	ap->noise_suppression()->Enable(true);
-	ap->high_pass_filter()->Enable(true);
+	//ap->high_pass_filter()->Enable(true);
 	ap->voice_detection()->Enable(true);
 
 	rtp.getServer().setWebRTCAudioProcessing(ap);
