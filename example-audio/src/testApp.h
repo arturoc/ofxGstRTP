@@ -10,7 +10,6 @@
 #include "ofMain.h"
 #include "ofxGui.h"
 #include "ofxGstXMPPRTP.h"
-#include "audio_processing.h"
 
 class testApp : public ofBaseApp{
 
@@ -39,6 +38,5 @@ class testApp : public ofBaseApp{
 
 		ofxGstXMPPRTP rtp;
 		int calling;
-		ofxIntSlider bitrate;
-		webrtc::AudioProcessing * ap;
+		ofxPanel gui;
 };

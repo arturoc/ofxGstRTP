@@ -95,11 +95,12 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,depthStream(NULL)
 ,oscStream(NULL)
 ,audioStream(NULL)
-,audioProcessing(0)
+,echoCancel(NULL)
 ,prevTimestampAudio(0)
 ,numFrameAudio(0)
 ,firstAudioFrame(true)
 ,prevAudioBuffer(0)
+,audioFramesProcessed(0)
 {
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
@@ -865,8 +866,8 @@ void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
 
 }
 
-void ofxGstRTPClient::setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing){
-	this->audioProcessing = audioProcessing;
+void ofxGstRTPClient::setEchoCancel(ofxEchoCancel & echoCancel){
+	this->echoCancel = &echoCancel;
 }
 
 void ofxGstRTPClient::setup(string srcIP, int latency){
@@ -1058,6 +1059,10 @@ u_int64_t ofxGstRTPClient::getAudioOutLatencyMs(){
 	return gstAudioOut.getMinLatencyNanos()*0.000001;
 }
 
+u_int64_t ofxGstRTPClient::getAudioFramesProcessed(){
+	return audioFramesProcessed;
+}
+
 ofxOscMessage ofxGstRTPClient::getOscMessage(){
 
 	osc::ReceivedPacket * packet = doubleBufferOsc.getOscReceivedPacket();
@@ -1233,7 +1238,7 @@ GstFlowReturn ofxGstRTPClient::on_new_preroll_from_audio(GstAppSink * elt, void 
 	return GST_FLOW_OK;
 }
 
-void ofxGstRTPClient::sendAudioOut(webrtc::AudioFrame & frame){
+void ofxGstRTPClient::sendAudioOut(PooledAudioFrame * pooledFrame){
 	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gstAudioOut.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gstAudioOut.getPipeline());
@@ -1246,9 +1251,10 @@ void ofxGstRTPClient::sendAudioOut(webrtc::AudioFrame & frame){
 	}
 
 	//cout << "client sending " << frame._payloadDataLengthInSamples << " samples at " << (int)(now*0.000001) << "ms" << endl;
-	int size = frame._payloadDataLengthInSamples*2*frame._audioChannel;
-	GstBuffer * echoCancelledBuffer = gst_buffer_new_allocate(NULL,size,NULL);
-	gst_buffer_fill(echoCancelledBuffer,0,frame._payloadData,size);
+	int size = pooledFrame->audioFrame._payloadDataLengthInSamples*2*pooledFrame->audioFrame._audioChannel;
+
+	GstBuffer * echoCancelledBuffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledFrame->audioFrame._payloadData,size,0,size,pooledFrame,(GDestroyNotify)&ofxWebRTCAudioPool::relaseFrame);
+
 	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
 	GST_BUFFER_DTS (echoCancelledBuffer) = now;
@@ -1266,7 +1272,7 @@ void ofxGstRTPClient::sendAudioOut(webrtc::AudioFrame & frame){
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void * data){
 	static int posInBuffer=0;
 	ofxGstRTPClient * client = (ofxGstRTPClient *)data;
-	if(client->audioProcessing){
+	if(client->echoCancel){
 		GstSample * sample = gst_app_sink_pull_sample(elt);
 		GstBuffer * buffer = gst_sample_get_buffer(sample);
 
@@ -1275,34 +1281,41 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 		const int samplerate = 32000;
 		int buffersize = gst_buffer_get_size(buffer)/2/numChannels;
 		const int samplesIn10Ms = samplerate/100;
-		static short auxBuffer[samplesIn10Ms*numChannels];
 
 		if(client->prevAudioBuffer){
+			PooledAudioFrame * audioFrame = client->audioPool.newFrame();
 			gst_buffer_map (client->prevAudioBuffer, &client->mapinfo, GST_MAP_READ);
 			int prevBuffersize = gst_buffer_get_size(client->prevAudioBuffer)/2/numChannels;
-			memcpy(auxBuffer,((short*)client->mapinfo.data)+(posInBuffer*numChannels),(prevBuffersize-posInBuffer)*numChannels*sizeof(short));
+			memcpy(audioFrame->audioFrame._payloadData,((short*)client->mapinfo.data)+(posInBuffer*numChannels),(prevBuffersize-posInBuffer)*numChannels*sizeof(short));
 			gst_buffer_unmap(client->prevAudioBuffer,&client->mapinfo);
 			gst_buffer_unref(client->prevAudioBuffer);
 
 			gst_buffer_map (buffer, &client->mapinfo, GST_MAP_READ);
-			memcpy(auxBuffer+((prevBuffersize-posInBuffer)*numChannels),((short*)client->mapinfo.data),(samplesIn10Ms-(prevBuffersize-posInBuffer))*numChannels*sizeof(short));
+			memcpy(audioFrame->audioFrame._payloadData+((prevBuffersize-posInBuffer)*numChannels),((short*)client->mapinfo.data),(samplesIn10Ms-(prevBuffersize-posInBuffer))*numChannels*sizeof(short));
 
-			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
+			//client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
+			//client->audioFrame._payloadData = auxBuffer;
+			audioFrame->audioFrame._payloadDataLengthInSamples = samplesIn10Ms;
+			audioFrame->audioFrame._audioChannel = numChannels;
+			audioFrame->audioFrame._frequencyInHz = samplerate;
 			//cout << "analyze reverse returned " <<
-			//client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
-			client->sendAudioOut(client->audioFrame);
+			client->echoCancel->analyzeReverse(audioFrame->audioFrame);// << endl;
+			client->sendAudioOut(audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
+			client->audioFramesProcessed += samplesIn10Ms;
 		}else{
 			gst_buffer_map (buffer, &client->mapinfo, GST_MAP_READ);
 			posInBuffer = 0;
 		}
 
 		while(posInBuffer+samplesIn10Ms<=buffersize){
-			client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)client->mapinfo.data) + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
+			PooledAudioFrame * audioFrame = client->audioPool.newFrame();
+			audioFrame->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)client->mapinfo.data) + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 			//cout << "analyze reverse returned " <<
-			//client->audioProcessing->AnalyzeReverseStream(&client->audioFrame);// << endl;
-			client->sendAudioOut(client->audioFrame);
+			client->echoCancel->analyzeReverse(audioFrame->audioFrame);// << endl;
+			client->sendAudioOut(audioFrame);
 			posInBuffer+=samplesIn10Ms;
+			client->audioFramesProcessed += samplesIn10Ms;
 		};
 
 		if(posInBuffer<buffersize){

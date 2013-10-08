@@ -39,8 +39,6 @@ ofxGstXMPPRTP::ofxGstXMPPRTP()
     }
 #endif
 
-    parameters.add(client.parameters);
-    parameters.add(server.parameters);
 }
 
 ofxGstXMPPRTP::~ofxGstXMPPRTP() {
@@ -50,6 +48,15 @@ ofxGstXMPPRTP::~ofxGstXMPPRTP() {
 void ofxGstXMPPRTP::setup(int clientLatency){
 	server.setup();
 	client.setup(clientLatency);
+
+	echoCancel.setup();
+	server.setEchoCancel(echoCancel);
+	client.setEchoCancel(echoCancel);
+	server.setRTPClient(client);
+
+    parameters.add(client.parameters);
+    parameters.add(server.parameters);
+    parameters.add(echoCancel.parameters);
 
 	ofAddListener(xmpp.jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
 	ofAddListener(xmpp.jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);

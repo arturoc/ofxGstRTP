@@ -12,6 +12,7 @@
 #include "ofxXMPP.h"
 #include "ofxGstRTPServer.h"
 #include "ofxGstRTPClient.h"
+#include "ofxEchoCancel.h"
 
 class ofxGstXMPPRTP {
 public:
@@ -68,6 +69,9 @@ private:
 	ofxNiceStream * oscStream;
 
 	bool videoGathered, depthGathered, audioGathered, oscGathered;
+
+
+	ofxEchoCancel echoCancel;
 
 };
 

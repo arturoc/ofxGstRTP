@@ -21,7 +21,8 @@
 #include "ofxXMPP.h"
 
 #include "audio_processing.h"
-#include "module_common_types.h"
+#include "ofxWebRTCAudioPool.h"
+#include "ofxEchoCancel.h"
 
 class ofxGstRTPClient;
 
@@ -36,7 +37,7 @@ public:
 
 
 	void setRTPClient(ofxGstRTPClient & client);
-	void setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing);
+	void setEchoCancel(ofxEchoCancel & echoCancel);
 	void setup(string destinationAddress);
 	void setup();
 	void close();
@@ -103,6 +104,7 @@ private:
 	GstElement * appSrcOsc;
 	GstElement * appSinkAudio;
 	GstElement * appSrcAudio;
+	GstElement * audiocapture;
 	ofxGstBufferPool<unsigned char> * bufferPool;
 	ofxGstBufferPool<unsigned char> * bufferPoolDepth;
 	ofxOscPacketPool oscPacketPool;
@@ -131,12 +133,14 @@ private:
 	bool firstDepthFrame;
 	bool firstAudioFrame;
 
-	webrtc::AudioProcessing * audioProcessing;
+	ofxEchoCancel * echoCancel;
 	GstMapInfo mapinfo;
-	webrtc::AudioFrame audioFrame;
 	ofxGstRTPClient * client;
 	GstBuffer * prevAudioBuffer;
-	void sendAudioOut(webrtc::AudioFrame & frame);
+	unsigned long long audioFramesProcessed;
+	u_int64_t analogAudio;
+	ofxWebRTCAudioPool audioPool;
+	void sendAudioOut(PooledAudioFrame * pooledFrame);
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */

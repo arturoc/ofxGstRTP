@@ -19,15 +19,15 @@
 #include "ofParameter.h"
 #include "ofParameterGroup.h"
 
-#include "audio_processing.h"
-#include "module_common_types.h"
+#include "ofxEchoCancel.h"
+#include "ofxWebRTCAudioPool.h"
 
 class ofxGstRTPClient: public ofGstAppSink {
 public:
 	ofxGstRTPClient();
 	virtual ~ofxGstRTPClient();
 
-	void setWebRTCAudioProcessing(webrtc::AudioProcessing * audioProcessing);
+	void setEchoCancel(ofxEchoCancel & echoCancel);
 	void setup(string srcIP, int latency);
 	void setup(int latency);
 	void close();
@@ -54,6 +54,7 @@ public:
 	ofxOscMessage getOscMessage();
 
 	u_int64_t getAudioOutLatencyMs();
+	u_int64_t getAudioFramesProcessed();
 
 	ofParameter<int> latency;
 	ofParameter<bool> drop;
@@ -202,14 +203,15 @@ private:
 	ofxXMPPJingleInitiation remoteJingle;
 	void onNiceLocalCandidatesGathered(vector<ofxICECandidate> & candidates);
 
-	webrtc::AudioProcessing * audioProcessing;
-	webrtc::AudioFrame audioFrame;
 
+	ofxEchoCancel * echoCancel;
 	GstClockTime prevTimestampAudio;
 	unsigned long long numFrameAudio;
 	bool firstAudioFrame;
 	GstBuffer * prevAudioBuffer;
-	void sendAudioOut(webrtc::AudioFrame & frame);
+	unsigned long long audioFramesProcessed;
+	ofxWebRTCAudioPool audioPool;
+	void sendAudioOut(PooledAudioFrame * pooledFrame);
 };
 
 #endif /* OFXGSTRTPCLIENT_H_ */

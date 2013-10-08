@@ -11,20 +11,8 @@ void testApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
 
-	ap = webrtc::AudioProcessing::Create(0);
-	ap->Initialize();
-	ap->set_num_channels(2,2);
-	ap->set_num_reverse_channels(2);
-	ap->set_sample_rate_hz(32000);
-	//ap->echo_cancellation()->Enable(true);
-	ap->noise_suppression()->Enable(true);
-	//ap->high_pass_filter()->Enable(true);
-	//ap->voice_detection()->Enable(true);
 
-	rtp.getServer().setWebRTCAudioProcessing(ap);
-	rtp.getClient().setWebRTCAudioProcessing(ap);
-	rtp.getServer().setRTPClient(rtp.getClient());
-	rtp.setup(0);
+	rtp.setup(200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendAudioChannel();
@@ -32,8 +20,8 @@ void testApp::setup(){
 
 	ofBackground(255);
 
-	bitrate.setup(rtp.getServer().audioBitrate);
-	bitrate.setPosition(10,10);
+	gui.setup();
+	gui.add(rtp.parameters);
 
 	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
 	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
@@ -64,7 +52,7 @@ void testApp::update(){
 
 //--------------------------------------------------------------
 void testApp::draw(){
-	bitrate.draw();
+	gui.draw();
 
 	ofTranslate(0,40);
 	const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
