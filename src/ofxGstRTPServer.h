@@ -10,19 +10,26 @@
 
 #include "ofGstUtils.h"
 #include <gst/app/gstappsink.h>
+
 #include "ofParameter.h"
 #include "ofParameterGroup.h"
 
+#include "ofxGstRTPConstants.h"
+
 #include "ofxOsc.h"
-
 #include "ofxOscPacketPool.h"
-#include <agent.h>
-#include "ofxNice.h"
-#include "ofxXMPP.h"
 
-#include "audio_processing.h"
-#include "ofxWebRTCAudioPool.h"
-#include "ofxEchoCancel.h"
+#if ENABLE_NAT_TRANSVERSAL
+	#include "ofxNice.h"
+	#include "ofxXMPP.h"
+#endif
+
+
+#if ENABLE_ECHO_CANCEL
+	#include "audio_processing.h"
+	#include "ofxWebRTCAudioPool.h"
+	#include "ofxEchoCancel.h"
+#endif
 
 class ofxGstRTPClient;
 
@@ -36,21 +43,31 @@ public:
 	virtual ~ofxGstRTPServer();
 
 
-	void setRTPClient(ofxGstRTPClient & client);
+#if ENABLE_ECHO_CANCEL
+	/// this needs to be called before adding an audio channel if we want echo cancellation
 	void setEchoCancel(ofxEchoCancel & echoCancel);
-	void setup(string destinationAddress);
-	void setup();
-	void close();
+	void setRTPClient(ofxGstRTPClient & client);
+#endif
 
-	void addVideoChannel(int port, int w, int h, int fps, int bitrate);
+	/// use this version of setup when working with direct connection
+	/// to an specific IP and port
+	void setup(string destinationAddress);
+	void addVideoChannel(int port, int w, int h, int fps);
 	void addAudioChannel(int port);
-	void addDepthChannel(int port, int w, int h, int fps, int bitrate, bool depth16=false);
+	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false);
 	void addOscChannel(int port);
 
-	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, int bitrate);
+#if ENABLE_NAT_TRANSVERSAL
+	/// use this version of setup when working with NAT transversal
+	/// usually this will be done from ofxGstXMPPRTP
+	void setup();
+	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps);
 	void addAudioChannel(ofxNiceStream * niceStream);
-	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, int bitrate, bool depth16=false);
+	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false);
 	void addOscChannel(ofxNiceStream * niceStream);
+#endif
+
+	void close();
 
 	void play();
 
@@ -64,18 +81,17 @@ public:
 
 	ofParameterGroup parameters;
 	ofParameter<int> videoBitrate;
+	ofParameter<int> depthBitrate;
 	ofParameter<int> audioBitrate;
+	ofParameter<bool> reverseDriftCalculation;
 
 	static string LOG_NAME;
 
 private:
 	void vBitRateChanged(int & bitrate);
+	void dBitRateChanged(int & bitrate);
 	void aBitRateChanged(int & bitrate);
 	void appendMessage( ofxOscMessage& message, osc::OutboundPacketStream& p );
-
-	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
-	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);
-	static GstFlowReturn on_new_buffer_from_audio(GstAppSink * elt, void * data);
 
 
 	ofGstUtils gst;
@@ -102,9 +118,6 @@ private:
 	GstElement * appSrcVideoRGB;
 	GstElement * appSrcDepth;
 	GstElement * appSrcOsc;
-	GstElement * appSinkAudio;
-	GstElement * appSrcAudio;
-	GstElement * audiocapture;
 	ofxGstBufferPool<unsigned char> * bufferPool;
 	ofxGstBufferPool<unsigned char> * bufferPoolDepth;
 	ofxOscPacketPool oscPacketPool;
@@ -123,15 +136,27 @@ private:
 	string dest;
 	int lastSessionNumber;
 
+#if ENABLE_NAT_TRANSVERSAL
 	ofxNiceStream * videoStream;
 	ofxNiceStream * depthStream;
 	ofxNiceStream * oscStream;
 	ofxNiceStream * audioStream;
+#endif
 
 	bool firstVideoFrame;
 	bool firstOscFrame;
 	bool firstDepthFrame;
 	bool firstAudioFrame;
+
+#if ENABLE_ECHO_CANCEL
+	bool audioChannelReady;
+	GstElement * appSinkAudio;
+	GstElement * appSrcAudio;
+	GstElement * audiocapture;
+
+	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);
+	static GstFlowReturn on_new_buffer_from_audio(GstAppSink * elt, void * data);
 
 	ofxEchoCancel * echoCancel;
 	GstMapInfo mapinfo;
@@ -141,6 +166,7 @@ private:
 	u_int64_t analogAudio;
 	ofxWebRTCAudioPool audioPool;
 	void sendAudioOut(PooledAudioFrame * pooledFrame);
+#endif
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */

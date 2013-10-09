@@ -11,14 +11,29 @@ void testApp::setup(){
 	grabber.initGrabber(640,480);
 	remoteVideo.allocate(640,480,GL_RGB);
 
-	rtp.setup(0);
+	rtp.setup(200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
-	rtp.addSendVideoChannel(640,480,30,300);
+	rtp.addSendVideoChannel(640,480,30);
 	rtp.addSendAudioChannel();
 	calling = -1;
 
 	ofBackground(255);
+
+	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+}
+
+void testApp::onCallReceived(string & from){
+	rtp.acceptCall();
+}
+
+void testApp::onCallAccepted(string & from){
+
+}
+
+void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
 }
 
 

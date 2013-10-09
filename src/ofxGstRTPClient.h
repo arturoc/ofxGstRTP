@@ -13,34 +13,52 @@
 #include "ofxGstVideoDoubleBuffer.h"
 #include "ofxOsc.h"
 #include "ofxGstOscDoubleBuffer.h"
-#include <agent.h>
-#include "ofxNice.h"
-#include "ofxXMPP.h"
+#include "ofxGstRTPConstants.h"
+
 #include "ofParameter.h"
 #include "ofParameterGroup.h"
 
+#if ENABLE_NAT_TRANSVERSAL
+#include <agent.h>
+#include "ofxNice.h"
+#include "ofxXMPP.h"
+#endif
+
+#if ENABLE_ECHO_CANCEL
 #include "ofxEchoCancel.h"
 #include "ofxWebRTCAudioPool.h"
+#endif
 
 class ofxGstRTPClient: public ofGstAppSink {
 public:
 	ofxGstRTPClient();
 	virtual ~ofxGstRTPClient();
 
+#if ENABLE_ECHO_CANCEL
+	/// this has to be called before adding an audio channel
 	void setEchoCancel(ofxEchoCancel & echoCancel);
-	void setup(string srcIP, int latency);
-	void setup(int latency);
-	void close();
+#endif
 
+
+	/// use this version of setup when working with direct connection
+	/// to an specific IP and port
+	void setup(string srcIP, int latency);
 	void addAudioChannel(int port);
 	void addVideoChannel(int port, int w, int h, int fps);
 	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false);
 	void addOscChannel(int port);
 
+#if ENABLE_NAT_TRANSVERSAL
+	/// use this version of setup when working with NAT transversal
+	/// usually this will be done from ofxGstXMPPRTP
+	void setup(int latency);
 	void addAudioChannel(ofxNiceStream * niceStream);
 	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps);
 	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false);
 	void addOscChannel(ofxNiceStream * niceStream);
+#endif
+
+	void close();
 
 	void play();
 	void update();
@@ -53,14 +71,18 @@ public:
 	ofShortPixels & getPixelsDepth16();
 	ofxOscMessage getOscMessage();
 
-	u_int64_t getAudioOutLatencyMs();
-	u_int64_t getAudioFramesProcessed();
 
 	ofParameter<int> latency;
 	ofParameter<bool> drop;
 	ofParameterGroup parameters;
 
 	static string LOG_NAME;
+
+#if ENABLE_ECHO_CANCEL
+	u_int64_t getAudioOutLatencyMs();
+	u_int64_t getAudioFramesProcessed();
+#endif
+
 private:
 	void latencyChanged(int & latency);
 	void dropChanged(bool & drop);
@@ -78,7 +100,12 @@ private:
 		int sessionNumber;
 		string sourceName, rtpcSourceName, rtpcSinkName;
 	};
+
+#if ENABLE_NAT_TRANSVERSAL
 	void createNetworkElements(NetworkElementsProperties properties, ofxNiceStream * niceStream);
+#else
+	void createNetworkElements(NetworkElementsProperties properties, void *);
+#endif
 
 	void createAudioChannel(string rtpCaps);
 	void createVideoChannel(string rtpCaps, int w, int h, int fps);
@@ -112,10 +139,12 @@ private:
 	static GstFlowReturn on_new_preroll_from_osc(GstAppSink * elt, void * rtpClient);
 	static GstFlowReturn on_new_buffer_from_osc(GstAppSink * elt, void * rtpClient);
 
+#if ENABLE_ECHO_CANCEL
 	// audio echo cancel callbacks
 	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
 	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);
 	static GstFlowReturn on_new_buffer_from_audio(GstAppSink * elt, void * rtpClient);
+#endif
 
 	// video instance callbacks
 	void on_eos_from_video(GstAppSink * elt){};
@@ -195,15 +224,18 @@ private:
 	bool audioReady;
 	bool oscReady;
 
+#if ENABLE_NAT_TRANSVERSAL
 	// ICE/XMPP related
 	ofxNiceStream * videoStream;
 	ofxNiceStream * depthStream;
 	ofxNiceStream * oscStream;
 	ofxNiceStream * audioStream;
 	ofxXMPPJingleInitiation remoteJingle;
-	void onNiceLocalCandidatesGathered(vector<ofxICECandidate> & candidates);
+#endif
 
 
+#if ENABLE_ECHO_CANCEL
+	bool audioChannelReady;
 	ofxEchoCancel * echoCancel;
 	GstClockTime prevTimestampAudio;
 	unsigned long long numFrameAudio;
@@ -212,6 +244,7 @@ private:
 	unsigned long long audioFramesProcessed;
 	ofxWebRTCAudioPool audioPool;
 	void sendAudioOut(PooledAudioFrame * pooledFrame);
+#endif
 };
 
 #endif /* OFXGSTRTPCLIENT_H_ */

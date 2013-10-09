@@ -18,7 +18,6 @@
 
 #include "ofxGstPixelsPool.h"
 #include "ofxGstRTPUtils.h"
-#include "module_common_types.h"
 
 #include "ofxGstRTPClient.h"
 
@@ -100,42 +99,46 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,width(0)
 ,height(0)
 ,lastSessionNumber(0)
+#if ENABLE_NAT_TRANSVERSAL
 ,videoStream(NULL)
 ,depthStream(NULL)
 ,oscStream(NULL)
 ,audioStream(NULL)
+#endif
 ,firstVideoFrame(true)
 ,firstOscFrame(true)
 ,firstDepthFrame(true)
 ,firstAudioFrame(true)
+#if ENABLE_ECHO_CANCEL
+,audioChannelReady(false)
 ,echoCancel(0)
 ,prevAudioBuffer(NULL)
 ,audioFramesProcessed(0)
 ,analogAudio(0x10000U)
+#endif
 {
-	videoBitrate.set("video bitrate",1024,0,6000);
+	videoBitrate.set("video bitrate (kbps)",300,0,6000);
 	videoBitrate.addListener(this,&ofxGstRTPServer::vBitRateChanged);
-	audioBitrate.set("audio bitrate",4000,0,650000);
+	depthBitrate.set("depth bitrate (kbps)",1024,0,6000);
+	depthBitrate.addListener(this,&ofxGstRTPServer::dBitRateChanged);
+	audioBitrate.set("audio bitrate (bps)",64000,4000,650000);
 	audioBitrate.addListener(this,&ofxGstRTPServer::aBitRateChanged);
+	reverseDriftCalculation.set("reverse drift calc.",false);
 	parameters.setName("gst rtp server");
-	parameters.add(videoBitrate);
-	parameters.add(audioBitrate);
 
+#if ENABLE_ECHO_CANCEL
 	GstMapInfo mapinfo = {0,};
 	this->mapinfo=mapinfo;
+#endif
 }
 
 ofxGstRTPServer::~ofxGstRTPServer() {
 }
 
 
-void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitrate){
+void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
-
-	videoBitrate.disableEvents();
-	videoBitrate = bitrate;
-	videoBitrate.enableEvents();
 	// video elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
@@ -148,7 +151,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 		string vsource= velem + " ! queue leaky=2 max-size-buffers=100 ! " + vcaps + " ! videoconvert name=vconvert1";
 
 		// h264 encoder + rtp pay
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(bitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
 
 	// video rtpc
 	// ------------------
@@ -156,11 +159,14 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 		string vrtpcsink;
 		string vrtpcsrc;
 
+#if ENABLE_NAT_TRANSVERSAL
 		if(videoStream){
 			vrtpsink="nicesink ts-offset=0 name=vrtpsink";
 			vrtpcsink="nicesink  sync=false async=false name=vrtcpsink";
 			vrtpcsrc="nicesrc name=vrtcpsrc";
-		}else{
+		}else
+#endif
+		{
 			vrtpsink="udpsink port=" + ofToString(port) + " host="+dest+" ts-offset=0 force-ipv4=1 name=vrtpsink";
 			vrtpcsink="udpsink port=" + ofToString(port+1) + " host="+dest+" sync=false async=false force-ipv4=1 name=vrtcpsink";
 			vrtpcsrc="udpsrc port=" + ofToString(port+3) + " name=vrtcpsrc";
@@ -173,6 +179,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, int bitra
 
 	// create a pixels pool of the correct w,h and bpp to use on newFrame
 	bufferPool = new ofxGstBufferPool<unsigned char>(w,h,3);
+	parameters.add(videoBitrate);
 }
 
 
@@ -183,46 +190,65 @@ void ofxGstRTPServer::addAudioChannel(int port){
 	// audio elements
 	//-------------------
 		// audio source
-		string aelem = "appsrc is-live=1 format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
+		string aelem;
+#if ENABLE_ECHO_CANCEL
+		if(echoCancel){
+			parameters.add(reverseDriftCalculation);
+			aelem = "appsrc is-live=1 format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
+		}else
+#endif
+		{
+		#ifdef TARGET_LINUX
+			aelem = "pulsesrc stream-properties=\"props,media.role=phone,filter.want=echo-cancel\" name=audiocapture ";
+
+		#elif defined(TARGET_OSX)
+			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
+			// FIXME: we should detect the format somehow and set it automatically
+			aelem = "osxaudiosrc ! audio/x-raw,rate=44100,channels=1 name=audiocapture ";
+		#endif
+		}
 
 		// audio source + queue for threading + audio resample and convert
 		// to change sampling rate and format to something supported by the encoder
-		string asource=aelem + " ! audioresample ! audioconvert";
+		string asource = aelem + " ! audioresample ! audioconvert";
 
 		// opus encoder + opus pay
 		// FIXME: audio=0 is voice??
-		string aenc="opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
+		string aenc = "opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
 
 	// audio rtpc
 		string artpsink;
 		string artpcsink;
 		string artpcsrc;
 
+#if ENABLE_NAT_TRANSVERSAL
 		if(audioStream){
 			artpsink="nicesink ts-offset=0 name=artpsink";
 			artpcsink="nicesink sync=false async=false name=artcpsink";
 			artpcsrc="nicesrc name=artcpsrc";
-		}else{
+		}else
+#endif
+		{
 			artpsink="udpsink port=" + ofToString(port) + " host="+dest+" ts-offset=0 force-ipv4=1 name=artpsink";
 			artpcsink="udpsink port=" + ofToString(port+1) + " host="+dest+" sync=false async=false force-ipv4=1 name=artcpsink";
 			artpcsrc="udpsrc port=" + ofToString(port+3) + " name=artcpsrc";
 		}
-
 
 		// audio
 	pipelineStr += " " +  asource + " ! " + aenc + " ! rtpbin.send_rtp_sink_" + ofToString(sessionNumber) +
 			" rtpbin.send_rtp_src_" + ofToString(sessionNumber) + " ! " + artpsink +
 			" rtpbin.send_rtcp_src_" + ofToString(sessionNumber) + " ! " + artpcsink +
 			" " + artpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
+
+#if ENABLE_ECHO_CANCEL
+	audioChannelReady = true;
+#endif
+	parameters.add(audioBitrate);
 }
 
-void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitrate, bool depth16){
+void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool depth16){
 	int sessionNumber = lastSessionNumber;
 	lastSessionNumber++;
-
-	videoBitrate.disableEvents();
-	videoBitrate = bitrate;
-	videoBitrate.enableEvents();
 
 	// depth elements
 	// ------------------
@@ -241,7 +267,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 		string dsource= delem + " ! queue leaky=2 max-size-buffers=100 ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(bitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
 
 	// depth rtpc
 	// ------------------
@@ -249,11 +275,14 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 		string drtpcsink;
 		string drtpcsrc;
 
+#if ENABLE_NAT_TRANSVERSAL
 		if(depthStream){
 			drtpsink="nicesink ts-offset=0 name=drtpsink";
 			drtpcsink="nicesink sync=false async=false name=drtcpsink";
 			drtpcsrc="nicesrc name=drtcpsrc";
-		}else{
+		}else
+#endif
+		{
 			drtpsink="udpsink port=" + ofToString(port) + " host="+dest+" ts-offset=0 force-ipv4=1 name=drtpsink";
 			drtpcsink="udpsink port=" + ofToString(port+1) + " host="+dest+" sync=false async=false force-ipv4=1 name=drtcpsink";
 			drtpcsrc="udpsrc port=" + ofToString(port+3) + " name=drtcpsrc";
@@ -270,6 +299,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, int bitra
 	}else{
 		bufferPoolDepth = new ofxGstBufferPool<unsigned char>(w,h,1);
 	}
+	parameters.add(depthBitrate);
 }
 
 void ofxGstRTPServer::addOscChannel(int port){
@@ -282,7 +312,7 @@ void ofxGstRTPServer::addOscChannel(int port){
 		string oelem="appsrc is-live=1 format=time name=appsrcosc ! application/x-osc ";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string osource= oelem;
+		string osource = oelem;
 
 		// rtp pay
 		string oenc=" rtpgstpay pt=99";
@@ -293,11 +323,14 @@ void ofxGstRTPServer::addOscChannel(int port){
 		string ortpcsink;
 		string ortpcsrc;
 
+#if ENABLE_NAT_TRANSVERSAL
 		if(oscStream){
 			ortpsink="nicesink ts-offset=0 name=ortpsink";
 			ortpcsink="nicesink sync=false async=false name=ortcpsink";
 			ortpcsrc="nicesrc name=ortcpsrc";
-		}else{
+		}else
+#endif
+		{
 			ortpsink="udpsink port=" + ofToString(port) + " host="+dest+" ts-offset=0 force-ipv4=1 name=ortpsink";
 			ortpcsink="udpsink port=" + ofToString(port+1) + " host="+dest+" sync=false async=false force-ipv4=1 name=ortcpsink";
 			ortpcsrc="udpsrc port=" + ofToString(port+3) + " name=ortcpsrc";
@@ -311,10 +344,10 @@ void ofxGstRTPServer::addOscChannel(int port){
 		" " + ortpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
 }
 
-
-void ofxGstRTPServer::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, int bitrate){
+#if ENABLE_NAT_TRANSVERSAL
+void ofxGstRTPServer::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps){
 	videoStream = niceStream;
-	addVideoChannel(0,w,h,fps,bitrate);
+	addVideoChannel(0,w,h,fps);
 }
 
 void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream){
@@ -322,15 +355,20 @@ void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream){
 	addAudioChannel(0);
 }
 
-void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, int bitrate, bool depth16){
+void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16){
 	depthStream = niceStream;
-	addDepthChannel(0,w,h,fps,bitrate,depth16);
+	addDepthChannel(0,w,h,fps,depth16);
 }
 
 void ofxGstRTPServer::addOscChannel(ofxNiceStream * niceStream){
 	oscStream = niceStream;
 	addOscChannel(0);
 }
+
+void ofxGstRTPServer::setup(){
+	setup("");
+}
+#endif
 
 void ofxGstRTPServer::setup(string dest){
 	this->dest = dest;
@@ -389,17 +427,19 @@ void ofxGstRTPServer::setup(string dest){
 
 }
 
+#if ENABLE_ECHO_CANCEL
 void ofxGstRTPServer::setRTPClient(ofxGstRTPClient & client){
 	this->client = &client;
 }
 
 void ofxGstRTPServer::setEchoCancel(ofxEchoCancel & echoCancel){
-	this->echoCancel = &echoCancel;
+	if(audioChannelReady){
+		ofLogError() << "trying to add echo cancel module after setting audio channel";
+	}else{
+		this->echoCancel = &echoCancel;
+	}
 }
-
-void ofxGstRTPServer::setup(){
-	setup("");
-}
+#endif
 
 void ofxGstRTPServer::close(){
 	gst.close();
@@ -424,17 +464,23 @@ void ofxGstRTPServer::close(){
 	width = 0;
 	height = 0;
 	lastSessionNumber = 0;
+#if ENABLE_NAT_TRANSVERSAL
 	videoStream = NULL;
 	depthStream = NULL;
 	oscStream = NULL;
 	audioStream = NULL;
+#endif
 	firstVideoFrame = true;
 	firstOscFrame = true;
 	firstDepthFrame = true;
 }
 
+
 void ofxGstRTPServer::vBitRateChanged(int & bitrate){
 	g_object_set(G_OBJECT(vEncoder),"bitrate",bitrate,NULL);
+}
+
+void ofxGstRTPServer::dBitRateChanged(int & bitrate){
 	g_object_set(G_OBJECT(dEncoder),"bitrate",bitrate,NULL);
 }
 
@@ -444,7 +490,6 @@ void ofxGstRTPServer::aBitRateChanged(int & bitrate){
 
 void ofxGstRTPServer::play(){
 	// pass the pipeline to the gstUtils so it starts everything
-	cout << pipelineStr << endl;
 	gst.setPipelineWithSink(pipelineStr,"",true);
 
 	// get the rtp and rtpc elements from the pipeline so we can read their properties
@@ -472,33 +517,36 @@ void ofxGstRTPServer::play(){
 	appSrcDepth = gst.getGstElementByName("appsrcdepth");
 	appSrcOsc = gst.getGstElementByName("appsrcosc");
 
-	appSrcAudio = gst.getGstElementByName("audioechosrc");
-	if(appSrcAudio){
-		gst_app_src_set_stream_type((GstAppSrc*)appSrcAudio,GST_APP_STREAM_TYPE_STREAM);
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel && audioChannelReady){
+		appSrcAudio = gst.getGstElementByName("audioechosrc");
+		if(appSrcAudio){
+			gst_app_src_set_stream_type((GstAppSrc*)appSrcAudio,GST_APP_STREAM_TYPE_STREAM);
+		}
+
+		#ifdef TARGET_LINUX
+			gstAudioIn.setPipelineWithSink("pulsesrc stream-properties=\"props,media.role=phone\" name=audiocapture ! audio/x-raw,format=S16LE,rate=44100,channels=1 ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
+
+		#elif defined(TARGET_OSX)
+			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
+			// FIXME: we should detect the format somehow and set it automatically
+			gstAudioIn.setPipelineWithSink("osxaudiosrc ! audio/x-raw,rate=44100,channels=1 name=audiocapture ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
+		#endif
+
+		appSinkAudio = gstAudioIn.getGstElementByName("audioechosink");
+		audiocapture = gstAudioIn.getGstElementByName("audiocapture");
+
+		// set callbacks to receive audio data
+		GstAppSinkCallbacks gstCallbacks;
+		gstCallbacks.eos = &on_eos_from_audio;
+		gstCallbacks.new_preroll = &on_new_preroll_from_audio;
+		gstCallbacks.new_sample = &on_new_buffer_from_audio;
+		gst_app_sink_set_callbacks(GST_APP_SINK(appSinkAudio), &gstCallbacks, this, NULL);
+		gst_app_sink_set_emit_signals(GST_APP_SINK(appSinkAudio),0);
 	}
-
-#ifdef TARGET_LINUX
-	gstAudioIn.setPipelineWithSink("pulsesrc stream-properties=\"props,media.role=phone\" name=audiocapture ! audio/x-raw,format=S16LE,rate=44100,channels=1 ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
-
-#elif defined(TARGET_OSX)
-	// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
-	// FIXME: we should detect the format somehow and set it automatically
-	gstAudioIn.setPipelineWithSink("osxaudiosrc ! audio/x-raw,rate=44100,channels=1 name=audiocapture ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
 #endif
 
-	appSinkAudio = gstAudioIn.getGstElementByName("audioechosink");
-	audiocapture = gstAudioIn.getGstElementByName("audiocapture");
-
-
-	// set callbacks to receive rgb data
-	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &on_eos_from_audio;
-	gstCallbacks.new_preroll = &on_new_preroll_from_audio;
-	gstCallbacks.new_sample = &on_new_buffer_from_audio;
-	gst_app_sink_set_callbacks(GST_APP_SINK(appSinkAudio), &gstCallbacks, this, NULL);
-	gst_app_sink_set_emit_signals(GST_APP_SINK(appSinkAudio),0);
-
-
+#if ENABLE_NAT_TRANSVERSAL
 	if(videoStream){
 		g_object_set(G_OBJECT(vRTPsink),"agent",videoStream->getAgent(),"stream",videoStream->getStreamID(),"component",1,NULL);
 		g_object_set(G_OBJECT(vRTPCsink),"agent",videoStream->getAgent(),"stream",videoStream->getStreamID(),"component",2,NULL);
@@ -519,6 +567,7 @@ void ofxGstRTPServer::play(){
 		g_object_set(G_OBJECT(oRTPCsink),"agent",oscStream->getAgent(),"stream",oscStream->getStreamID(),"component",2,NULL);
 		g_object_set(G_OBJECT(oRTPCsrc),"agent",oscStream->getAgent(),"stream",oscStream->getStreamID(),"component",3,NULL);
 	}
+#endif
 
 
 	if(appSrcVideoRGB) gst_app_src_set_stream_type((GstAppSrc*)appSrcVideoRGB,GST_APP_STREAM_TYPE_STREAM);
@@ -526,20 +575,15 @@ void ofxGstRTPServer::play(){
 	if(appSrcOsc) gst_app_src_set_stream_type((GstAppSrc*)appSrcOsc,GST_APP_STREAM_TYPE_STREAM);
 
 
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel && audioChannelReady){
+		gstAudioIn.startPipeline();
+		gstAudioIn.play();
+	}
+#endif
+
 	gst.startPipeline();
-	gstAudioIn.startPipeline();
-
 	gst.play();
-	gstAudioIn.play();
-
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
-	prevTimestamp = now;
-	prevTimestampDepth = now;
-	prevTimestampOsc = now;
-
 }
 
 bool ofxGstRTPServer::on_message(GstMessage * msg){
@@ -845,6 +889,7 @@ void ofxGstRTPServer::appendMessage( ofxOscMessage& message, osc::OutboundPacket
 	p << osc::EndMessage;
 }
 
+#if ENABLE_ECHO_CANCEL
 void ofxGstRTPServer::on_eos_from_audio(GstAppSink * elt, void * rtpClient){
 
 }
@@ -937,16 +982,24 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			u_int64_t t_process = now*0.000001;
 			int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
 
-			server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
-			server->echoCancel->getAudioProcessing()->echo_cancellation()->set_stream_drift_samples((int64_t)server->client->getAudioFramesProcessed()-(int64_t)server->audioFramesProcessed);
-			//cout << "process stream returned ";
-			server->echoCancel->getAudioProcessing()->gain_control()->set_stream_analog_level(server->analogAudio);
+			if(server->echoCancel->echoCancelEnabled){
+				server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
+			}
+			if(server->echoCancel->echoCancelEnabled && server->echoCancel->driftCompensationEnabled){
+				int drift = (-1*(server->reverseDriftCalculation?1:0))*((int64_t)server->client->getAudioFramesProcessed()-(int64_t)server->audioFramesProcessed);
+				server->echoCancel->getAudioProcessing()->echo_cancellation()->set_stream_drift_samples(drift);
+			}
+			if(server->echoCancel->gainControlEnabled){
+				server->echoCancel->getAudioProcessing()->gain_control()->set_stream_analog_level(server->analogAudio);
+			}
 			server->echoCancel->process(audioFrame->audioFrame);// << endl;
-			if(!server->echoCancel->getAudioProcessing()->voice_detection()->stream_has_voice()){
+			if(server->echoCancel->voiceDetectionEnabled && !server->echoCancel->getAudioProcessing()->voice_detection()->stream_has_voice()){
 				memset(audioFrame->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
 			}
-			server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
-			g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+			if(server->echoCancel->gainControlEnabled){
+				server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
+				g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+			}
 			//cout << server->analogAudio/double(0x10000U) << endl;
 			server->sendAudioOut(audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
@@ -968,16 +1021,25 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			u_int64_t t_process = now*0.000001;
 			int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
 
-			server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
-			server->echoCancel->getAudioProcessing()->echo_cancellation()->set_stream_drift_samples((int64_t)server->client->getAudioFramesProcessed()-(int64_t)server->audioFramesProcessed);
-			server->echoCancel->getAudioProcessing()->gain_control()->set_stream_analog_level(server->analogAudio);
+			if(server->echoCancel->echoCancelEnabled){
+				server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
+			}
+			if(server->echoCancel->echoCancelEnabled && server->echoCancel->driftCompensationEnabled){
+				int drift = (-1*(server->reverseDriftCalculation?1:0))*((int64_t)server->client->getAudioFramesProcessed()-(int64_t)server->audioFramesProcessed);
+				server->echoCancel->getAudioProcessing()->echo_cancellation()->set_stream_drift_samples(drift);
+			}
+			if(server->echoCancel->gainControlEnabled){
+				server->echoCancel->getAudioProcessing()->gain_control()->set_stream_analog_level(server->analogAudio);
+			}
 			//cout << "process stream returned ";
 			server->echoCancel->process(audioFrame->audioFrame);// << endl;
-			if(!server->echoCancel->getAudioProcessing()->voice_detection()->stream_has_voice()){
+			if(server->echoCancel->voiceDetectionEnabled && !server->echoCancel->getAudioProcessing()->voice_detection()->stream_has_voice()){
 				memset(audioFrame->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
 			}
-			server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
-			g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+			if(server->echoCancel->gainControlEnabled){
+				server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
+				g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+			}
 			//cout << server->analogAudio/double(0x10000U) << endl;
 			server->sendAudioOut(audioFrame);
 			posInBuffer+=samplesIn10Ms;
@@ -1003,3 +1065,4 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 	return GST_FLOW_OK;
 }
 
+#endif

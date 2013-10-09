@@ -8,18 +8,25 @@
 #ifndef OFXGSTRTP_H_
 #define OFXGSTRTP_H_
 
+#include "ofxGstRTPConstants.h"
+
+#if ENABLE_NAT_TRANSVERSAL
+
 #include "ofxNice.h"
 #include "ofxXMPP.h"
 #include "ofxGstRTPServer.h"
 #include "ofxGstRTPClient.h"
+
+#if ENABLE_ECHO_CANCEL
 #include "ofxEchoCancel.h"
+#endif
 
 class ofxGstXMPPRTP {
 public:
 	ofxGstXMPPRTP();
 	virtual ~ofxGstXMPPRTP();
 
-	void setup(int clientLatency=0);
+	void setup(int clientLatency=200, bool enableEchoCancel=true);
 
 	void connectXMPP(const string & host, const string & username, const string & pwd);
 	vector<ofxXMPPUser> getFriends();
@@ -28,8 +35,8 @@ public:
 
 	void sendXMPPMessage(const string & to, const string & message);
 
-	void addSendVideoChannel(int w, int h, int fps, int bitrate);
-	void addSendDepthChannel(int w, int h, int fps, int bitrate, bool depth16=false);
+	void addSendVideoChannel(int w, int h, int fps);
+	void addSendDepthChannel(int w, int h, int fps, bool depth16=false);
 	void addSendAudioChannel();
 	void addSendOscChannel();
 
@@ -70,9 +77,12 @@ private:
 
 	bool videoGathered, depthGathered, audioGathered, oscGathered;
 
-
+#if ENABLE_ECHO_CANCEL
 	ofxEchoCancel echoCancel;
+#endif
 
 };
+
+#endif
 
 #endif /* OFXGSTRTP_H_ */

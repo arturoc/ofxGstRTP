@@ -6,6 +6,9 @@
  */
 
 #include "ofxGstXMPPRTP.h"
+#include "ofxGstRTPConstants.h"
+
+#if ENABLE_NAT_TRANSVERSAL
 
 #ifndef TARGET_LINUX
 #include "gstnicesrc.h"
@@ -45,18 +48,27 @@ ofxGstXMPPRTP::~ofxGstXMPPRTP() {
 	// TODO Auto-generated destructor stub
 }
 
-void ofxGstXMPPRTP::setup(int clientLatency){
+void ofxGstXMPPRTP::setup(int clientLatency, bool enableEchoCancel){
+#if ENABLE_ECHO_CANCEL
+	if(enableEchoCancel){
+		echoCancel.setup();
+		server.setEchoCancel(echoCancel);
+		client.setEchoCancel(echoCancel);
+		server.setRTPClient(client);
+	}
+#endif
+
 	server.setup();
 	client.setup(clientLatency);
 
-	echoCancel.setup();
-	server.setEchoCancel(echoCancel);
-	client.setEchoCancel(echoCancel);
-	server.setRTPClient(client);
-
     parameters.add(client.parameters);
     parameters.add(server.parameters);
-    parameters.add(echoCancel.parameters);
+
+#if ENABLE_ECHO_CANCEL
+	if(enableEchoCancel){
+		parameters.add(echoCancel.parameters);
+	}
+#endif
 
 	ofAddListener(xmpp.jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
 	ofAddListener(xmpp.jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);
@@ -247,17 +259,17 @@ void ofxGstXMPPRTP::sendXMPPMessage(const string & to, const string & message){
 	xmpp.sendMessage(to,message);
 }
 
-void ofxGstXMPPRTP::addSendVideoChannel(int w, int h, int fps, int bitrate){
+void ofxGstXMPPRTP::addSendVideoChannel(int w, int h, int fps){
 	videoStream = new ofxNiceStream;
 	videoStream->setLogName("video");
-	server.addVideoChannel(videoStream,w,h,fps,bitrate);
+	server.addVideoChannel(videoStream,w,h,fps);
 	ofAddListener(videoStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
-void ofxGstXMPPRTP::addSendDepthChannel(int w, int h, int fps, int bitrate, bool depth16){
+void ofxGstXMPPRTP::addSendDepthChannel(int w, int h, int fps, bool depth16){
 	depthStream = new ofxNiceStream;
 	depthStream->setLogName("depth");
-	server.addDepthChannel(depthStream,w,h,fps,bitrate,depth16);
+	server.addDepthChannel(depthStream,w,h,fps,depth16);
 	ofAddListener(depthStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
@@ -325,3 +337,5 @@ ofxGstRTPClient & ofxGstXMPPRTP::getClient(){
 ofxXMPP & ofxGstXMPPRTP::getXMPP(){
 	return xmpp;
 }
+
+#endif

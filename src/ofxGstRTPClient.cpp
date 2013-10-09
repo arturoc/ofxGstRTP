@@ -91,16 +91,23 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,depthReady(false)
 ,oscReady(false)
 ,lastSessionNumber(0)
+
+#if ENABLE_NAT_TRANSVERSAL
 ,videoStream(NULL)
 ,depthStream(NULL)
 ,oscStream(NULL)
 ,audioStream(NULL)
+#endif
+
+#if ENABLE_ECHO_CANCEL
+,audioChannelReady(false)
 ,echoCancel(NULL)
 ,prevTimestampAudio(0)
 ,numFrameAudio(0)
 ,firstAudioFrame(true)
 ,prevAudioBuffer(0)
 ,audioFramesProcessed(0)
+#endif
 {
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
@@ -304,11 +311,15 @@ void ofxGstRTPClient::on_bye_ssrc_handler(GstBin *rtpbin, guint session, guint s
 
 }
 
+#if ENABLE_NAT_TRANSVERSAL
 void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties, ofxNiceStream * niceStream){
-
+#else
+void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties, void *){
+#endif
 	// create video nicesrc elements and add them to the pipeline
 	GstCaps * caps = gst_caps_from_string(properties.capsstr.c_str());
 
+#if ENABLE_NAT_TRANSVERSAL
 	if(niceStream){
 		*properties.source = gst_element_factory_make("nicesrc",properties.sourceName.c_str());
 		if(!*properties.source){
@@ -331,7 +342,9 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 		if(gst_pad_link(srcpad,sinkpad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link src to rtpbin";
 		}
-	}else{
+	}else
+#endif
+	{
 		*properties.source = gst_element_factory_make("udpsrc",properties.sourceName.c_str());
 		g_object_set(G_OBJECT(*properties.source),"port",properties.port,"caps",caps,NULL);
 		gst_caps_unref(caps);
@@ -349,6 +362,8 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 	}
 
 	// create video nicesrc for rtpc
+
+#if ENABLE_NAT_TRANSVERSAL
 	if(niceStream){
 		*properties.rtpcsource = gst_element_factory_make("nicesrc",properties.rtpcSourceName.c_str());
 
@@ -357,7 +372,9 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 		}
 
 		g_object_set(G_OBJECT(*properties.rtpcsource),"agent",niceStream->getAgent(),"stream",niceStream->getStreamID(),"component",2,NULL);
-	}else{
+	}else
+#endif
+	{
 		*properties.rtpcsource = gst_element_factory_make("udpsrc",properties.rtpcSourceName.c_str());
 		g_object_set(G_OBJECT(*properties.rtpcsource),"port",properties.rtpcsrcport,NULL);
 	}
@@ -370,6 +387,8 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 	}
 
 	// create rtcp sink
+
+#if ENABLE_NAT_TRANSVERSAL
 	if(niceStream){
 		*properties.rtpcsink = gst_element_factory_make("nicesink",properties.rtpcSinkName.c_str());
 
@@ -378,7 +397,9 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 		}
 
 		g_object_set(G_OBJECT(*properties.rtpcsink),"agent",niceStream->getAgent(),"stream",niceStream->getStreamID(),"component",3,NULL);
-	}else{
+	}else
+#endif
+	{
 		*properties.rtpcsink = gst_element_factory_make("udpsink",properties.rtpcSinkName.c_str());
 		g_object_set(G_OBJECT(*properties.rtpcsink),"port",properties.rtpcsinkport, "host", properties.srcIP.c_str(), "sync",0, "force-ipv4",1, "async",0,NULL);
 	}
@@ -455,71 +476,88 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 	// Linux:
 	// rtpopusdepay ! opusdec ! audioconvert ! audioresample ! pulsesink stream-properties=\"props,media.role=phone,filter.want=echo-cancel\"
 	// everything else:
-	// rtpopusdepay ! opusdec ! audioresample ! autoaudiosink
+	// rtpopusdepay ! opusdec ! audioconvert ! audioresample ! autoaudiosink
 
 	opusdepay = gst_element_factory_make("rtpopusdepay","rtpopusdepay1");
 	GstElement * opusdec = gst_element_factory_make("opusdec","opusdec1");
 	GstElement * audioconvert = gst_element_factory_make("audioconvert","audioconvert1");
 	GstElement * audioresample = gst_element_factory_make("audioresample","audioresample1");
-	GstElement * audioconvert2 = gst_element_factory_make("audioconvert","audioconvert2");
-	GstElement * audioresample2 = gst_element_factory_make("audioresample","audioresample2");
-	GstElement * queue = gst_element_factory_make("queue","queue");
-	GstElement * audioechosink = gst_element_factory_make("appsink","audioechosink");
-	audioechosrc = gst_element_factory_make("appsrc","audioechosrc");
-	g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,NULL);
+#if ENABLE_ECHO_CANCEL
+	GstElement * audioconvert2;
+	GstElement * audioresample2;
+	GstElement * audioechosink;
+	if(echoCancel){
+		audioconvert2 = gst_element_factory_make("audioconvert","audioconvert2");
+		audioresample2 = gst_element_factory_make("audioresample","audioresample2");
+		audioechosink = gst_element_factory_make("appsink","audioechosink");
+		audioechosrc = gst_element_factory_make("appsrc","audioechosrc");
+		g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,NULL);
+
+		// set format for video appsink to rgb
+		GstCaps * caps = NULL;
+		caps = gst_caps_new_simple("audio/x-raw",
+						"format",G_TYPE_STRING,"S16LE",
+						"rate",G_TYPE_INT,32000,
+						"channels", G_TYPE_INT,2,
+						"layout",G_TYPE_STRING,"interleaved",
+						//"channel-mask",GST_TYPE_BITMASK,0x0000000000000003,
+						NULL);
+
+		if(!caps){
+			ofLogError(LOG_NAME) << "couldn't get caps";
+		}else{
+			gst_app_sink_set_caps(GST_APP_SINK(audioechosink),caps);
+			gst_app_src_set_caps(GST_APP_SRC(audioechosrc),caps);
+
+		}
+		gst_caps_unref(caps);
+	}
+#endif
 
 #ifdef TARGET_LINUX
 	GstElement * audiosink = gst_element_factory_make("pulsesink","pulsesink1");
-	GstStructure * pulseProperties = gst_structure_new("props","media.role",G_TYPE_STRING,"phone",NULL);//"filter.want",G_TYPE_STRING,"echo-cancel",NULL);
-	g_object_set(audiosink,"stream-properties",pulseProperties,NULL);
+	GstStructure * pulseProperties;
+	#if ENABLE_ECHO_CANCEL
+		if(echoCancel){
+			pulseProperties = gst_structure_new("props","media.role",G_TYPE_STRING,"phone",NULL);
+		}else
+	#endif
+		pulseProperties = gst_structure_new("props","media.role",G_TYPE_STRING,"phone","filter.want",G_TYPE_STRING,"echo-cancel",NULL);
 
-	/*GstElement * audiosink = gst_element_factory_make("filesink","pulsesink1");
-	g_object_set(audiosink,"location",(ofGetTimestampString()+".raw").c_str(),NULL);*/
+	g_object_set(audiosink,"stream-properties",pulseProperties,NULL);
 #else
 	GstElement * audiosink = gst_element_factory_make("autoaudiosink","autoaudiosink1");
 #endif
 
-	// set format for video appsink to rgb
-	GstCaps * caps = NULL;
-	caps = gst_caps_new_simple("audio/x-raw",
-					"format",G_TYPE_STRING,"S16LE",
-					"rate",G_TYPE_INT,32000,
-					"channels", G_TYPE_INT,2,
-					"layout",G_TYPE_STRING,"interleaved",
-					//"channel-mask",GST_TYPE_BITMASK,0x0000000000000003,
-					NULL);
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel){
+		GstAppSinkCallbacks gstCallbacks;
+		gstCallbacks.eos = &on_eos_from_audio;
+		gstCallbacks.new_preroll = &on_new_preroll_from_audio;
+		gstCallbacks.new_sample = &on_new_buffer_from_audio;
+		gst_app_sink_set_callbacks(GST_APP_SINK(audioechosink), &gstCallbacks, this, NULL);
+		gst_app_sink_set_emit_signals(GST_APP_SINK(audioechosink),0);
 
-	if(!caps){
-		ofLogError(LOG_NAME) << "couldn't get caps";
-	}else{
-		gst_app_sink_set_caps(GST_APP_SINK(audioechosink),caps);
-		gst_app_src_set_caps(GST_APP_SRC(audioechosrc),caps);
+		// add elements to the pipeline and link them (but not yet to the rtpbin)
+		gst_bin_add_many(GST_BIN(pipeline), opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL);
+		if(!gst_element_link_many(opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL)){
+			ofLogError(LOG_NAME) << "couldn't link audio elements";
+		}
 
+		gst_bin_add_many(GST_BIN(pipelineAudioOut), audioechosrc, audioconvert2, audioresample2, audiosink, NULL);
+		if(!gst_element_link_many(audioechosrc, audiosink, NULL)){
+			ofLogError(LOG_NAME) << "couldn't link audio elements";
+		}
+		audioChannelReady = true;
+	}else
+#endif
+	{
+		// add elements to the pipeline and link them (but not yet to the rtpbin)
+		gst_bin_add_many(GST_BIN(pipeline), opusdepay, opusdec, audioconvert, audioresample, audiosink, NULL);
+		if(!gst_element_link_many(opusdepay, opusdec, audioconvert, audioresample, audiosink, NULL)){
+			ofLogError(LOG_NAME) << "couldn't link audio elements";
+		}
 	}
-	 gst_caps_unref(caps);
-
-	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &on_eos_from_audio;
-	gstCallbacks.new_preroll = &on_new_preroll_from_audio;
-	gstCallbacks.new_sample = &on_new_buffer_from_audio;
-	gst_app_sink_set_callbacks(GST_APP_SINK(audioechosink), &gstCallbacks, this, NULL);
-	gst_app_sink_set_emit_signals(GST_APP_SINK(audioechosink),0);
-
-	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL);
-	if(!gst_element_link_many(opusdepay, opusdec, audioconvert, audioresample, audioechosink, NULL)){
-		ofLogError(LOG_NAME) << "couldn't link audio elements";
-	}else{
-		ofLogNotice(LOG_NAME) << "linked audio till audioechosink";
-	}
-
-	gst_bin_add_many(GST_BIN(pipelineAudioOut), audioechosrc, audioconvert2, audioresample2, audiosink, NULL);
-	if(!gst_element_link_many(audioechosrc, audiosink, NULL)){
-		ofLogError(LOG_NAME) << "couldn't link audio elements";
-	}else{
-		ofLogNotice(LOG_NAME) << "linked audio till audiosink";
-	}
-
 
 
 }
@@ -650,8 +688,6 @@ void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
 	properties.rtpcSinkName = "vrtcpsink";
 	createNetworkElements(properties,NULL);
 
-	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(videoSessionNumber)).c_str());
-	linkVideoPad(pad);*/
 }
 
 void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool depth16){
@@ -681,8 +717,6 @@ void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool dept
 	properties.rtpcSinkName = "drtcpsink";
 	createNetworkElements(properties, NULL);
 
-	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(depthSessionNumber)).c_str());
-	linkDepthPad(pad);*/
 }
 
 void ofxGstRTPClient::addAudioChannel(int port){
@@ -711,8 +745,6 @@ void ofxGstRTPClient::addAudioChannel(int port){
 	properties.rtpcSinkName = "artcpsink";
 	createNetworkElements(properties, NULL);
 
-	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(audioSessionNumber)).c_str());
-	linkAudioPad(pad);*/
 }
 
 void ofxGstRTPClient::addOscChannel(int port){
@@ -741,10 +773,9 @@ void ofxGstRTPClient::addOscChannel(int port){
 	properties.rtpcSinkName = "ortcpsink";
 	createNetworkElements(properties,NULL);
 
-	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(oscSessionNumber)).c_str());
-	linkOscPad(pad);*/
 }
 
+#if ENABLE_NAT_TRANSVERSAL
 void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps){
 	videoStream = niceStream;
 
@@ -860,22 +891,36 @@ void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
 	properties.rtpcSourceName = "ortcpsrc";
 	properties.rtpcSinkName = "ortcpsink";
 	createNetworkElements(properties,niceStream);
-
-	/*GstPad * pad = gst_element_get_request_pad(rtpbin,("recv_rtp_src_"+ofToString(oscSessionNumber)).c_str());
-	linkOscPad(pad);*/
-
 }
 
+void ofxGstRTPClient::setup(int latency){
+	setup("",latency);
+}
+#endif
+
+#if ENABLE_ECHO_CANCEL
 void ofxGstRTPClient::setEchoCancel(ofxEchoCancel & echoCancel){
-	this->echoCancel = &echoCancel;
+	if(audioChannelReady){
+		ofLogError(LOG_NAME) << "trying to add echo cancel module after audio channel setup";
+	}else{
+		this->echoCancel = &echoCancel;
+	}
 }
+#endif
 
 void ofxGstRTPClient::setup(string srcIP, int latency){
 	this->src = srcIP;
 	this->latency = latency;
 
 	pipeline = gst_pipeline_new("rtpclientpipeline");
-	pipelineAudioOut = gst_pipeline_new("audioclientpipeline");
+	gst.setSinkListener(this);
+
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel){
+		pipelineAudioOut = gst_pipeline_new("audioclientpipeline");
+		gstAudioOut.setSinkListener(this);
+	}
+#endif
 
 	rtpbin	 = gst_element_factory_make("rtpbin","rtpbin");
 	g_object_set(rtpbin,"latency",latency,NULL);
@@ -883,10 +928,6 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 	if(!gst_bin_add(GST_BIN(pipeline),rtpbin)){
 		ofLogError() << "couldn't add rtpbin to pipeline";
 	}
-
-	// set this instance as listener to receive messages from the pipeline
-	gst.setSinkListener(this);
-	gstAudioOut.setSinkListener(this);
 
 	doubleBufferVideo.setup(640,480,3);
 	if(depth16){
@@ -897,13 +938,13 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 	}
 }
 
-void ofxGstRTPClient::setup(int latency){
-	setup("",latency);
-}
-
 void ofxGstRTPClient::close(){
 	gst.close();
-	gstAudioOut.close();
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel){
+		gstAudioOut.close();
+	}
+#endif
 
 	width = 0;
 	height = 0;
@@ -940,10 +981,12 @@ void ofxGstRTPClient::close(){
 	depthReady = false;
 	oscReady = false;
 	lastSessionNumber = 0;
+#if ENABLE_NAT_TRANSVERSAL
 	videoStream = NULL;
 	depthStream = NULL;
 	oscStream = NULL;
 	audioStream = NULL;
+#endif
 }
 
 void ofxGstRTPClient::latencyChanged(int & latency){
@@ -958,7 +1001,9 @@ void ofxGstRTPClient::dropChanged(bool & drop){
 void ofxGstRTPClient::play(){
 	// pass the pipeline to ofGstVideoUtils so it starts it and allocates the needed resources
 	gst.setPipelineWithSink(pipeline,NULL,true);
+#if ENABLE_ECHO_CANCEL
 	gstAudioOut.setPipelineWithSink(pipelineAudioOut,NULL,true);
+#endif
 
 	// connect callback to the on-ssrc-active signal
 	g_signal_connect(gst.getGstElementByName("rtpbin"),"pad-added", G_CALLBACK(&ofxGstRTPClient::on_pad_added),this);
@@ -970,8 +1015,12 @@ void ofxGstRTPClient::play(){
 		gst_app_src_set_stream_type((GstAppSrc*)audioechosrc,GST_APP_STREAM_TYPE_STREAM);
 	}
 
-	gstAudioOut.startPipeline();
-	gstAudioOut.play();
+#if ENABLE_ECHO_CANCEL
+	if(echoCancel){
+		gstAudioOut.startPipeline();
+		gstAudioOut.play();
+	}
+#endif
 
 	gst.startPipeline();
 	gst.play();
@@ -1054,7 +1103,7 @@ void appendBundle(ofxOscMessage & ofMessage, osc::ReceivedBundle & b){
 	}
 }
 
-
+#if ENABLE_ECHO_CANCEL
 u_int64_t ofxGstRTPClient::getAudioOutLatencyMs(){
 	return gstAudioOut.getMinLatencyNanos()*0.000001;
 }
@@ -1062,6 +1111,7 @@ u_int64_t ofxGstRTPClient::getAudioOutLatencyMs(){
 u_int64_t ofxGstRTPClient::getAudioFramesProcessed(){
 	return audioFramesProcessed;
 }
+#endif
 
 ofxOscMessage ofxGstRTPClient::getOscMessage(){
 
@@ -1229,6 +1279,9 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_osc(GstAppSink * elt){
 	return GST_FLOW_OK;
 }
 
+
+
+#if ENABLE_ECHO_CANCEL
 void ofxGstRTPClient::on_eos_from_audio(GstAppSink * elt, void * rtpClient){
 
 }
@@ -1331,3 +1384,4 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 	}
 	return GST_FLOW_OK;
 }
+#endif

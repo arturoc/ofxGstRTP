@@ -16,6 +16,23 @@ void testApp::setup(){
 
 	ofBackground(255);
 	ofSetFrameRate(30);
+
+	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+}
+
+// this accepts any incomming call for more complex setups you probably want to implement
+// some logic to let the user decide if she wants to accept or decline the call
+void testApp::onCallReceived(string & from){
+	rtp.acceptCall();
+}
+
+void testApp::onCallAccepted(string & from){
+
+}
+
+void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
 }
 
 

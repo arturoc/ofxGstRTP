@@ -43,8 +43,8 @@ void testApp::setup(){
 	rtp.setup(200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
-	rtp.addSendVideoChannel(640,480,30,300);
-	rtp.addSendDepthChannel(640,480,30,300);
+	rtp.addSendVideoChannel(640,480,30);
+	rtp.addSendDepthChannel(640,480,30);
 	rtp.addSendOscChannel();
 	rtp.addSendAudioChannel();
 

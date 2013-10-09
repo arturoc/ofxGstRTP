@@ -8,7 +8,15 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxGstXMPPRTP.h"
+#include "ofxGstRTPClient.h"
+#include "ofxGstRTPServer.h"
+#include "ofxGui.h"
+
+#define DO_ECHO_CANCEL 1
+
+#if DO_ECHO_CANCEL
+#include "ofxEchoCancel.h"
+#endif
 
 class testApp : public ofBaseApp{
 
@@ -17,9 +25,6 @@ class testApp : public ofBaseApp{
 		void update();
 		void draw();
 		void exit();
-
-		bool onFriendSelected(const void *sender);
-		void onConnectionStateChanged(ofxXMPPConnectionState & connectionState);
 
 		void keyPressed(int key);
 		void keyReleased(int key);
@@ -31,16 +36,14 @@ class testApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 
-		void onCallReceived(string & from);
-		void onCallAccepted(string & from);
-		void onCallFinished(ofxXMPPTerminateReason & reason);
+		ofxGstRTPClient client;
+		ofxGstRTPServer server;
 
-		ofxGstXMPPRTP rtp;
 		ofVideoGrabber grabber;
 		ofTexture remoteVideo;
-		int calling;
 
-
-		ofPolyline localPoly;
-		ofPolyline remotePoly;
+		ofxPanel gui;
+#if DO_ECHO_CANCEL
+		ofxEchoCancel echoCancel;
+#endif
 };

@@ -31,6 +31,10 @@ class testApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 
+		void onCallReceived(string & from);
+		void onCallAccepted(string & from);
+		void onCallFinished(ofxXMPPTerminateReason & reason);
+
 		ofxGstXMPPRTP rtp;
 		int calling;
 
