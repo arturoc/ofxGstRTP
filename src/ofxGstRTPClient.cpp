@@ -428,10 +428,10 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	// rgb pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	vh264depay = gst_element_factory_make("rtph264depay","rtph264depay_video");
-	vqueue = gst_element_factory_make("queue","vqueue");
+	/*vqueue = gst_element_factory_make("queue","vqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	g_object_set(vqueue,"leaky",2, "max-size-buffers",100,NULL);
+	g_object_set(vqueue,"leaky",2, "max-size-buffers",100,NULL);*/
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_video");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","vconvert");
@@ -461,8 +461,8 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink),0);
 
 	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), vh264depay, vqueue, avdec_h264, vconvert, videoSink, NULL);
-	if(!gst_element_link_many(vh264depay, vqueue, avdec_h264, vconvert, videoSink, NULL)){
+	gst_bin_add_many(GST_BIN(pipeline), vh264depay, avdec_h264, vconvert, videoSink, NULL);
+	if(!gst_element_link_many(vh264depay, avdec_h264, vconvert, videoSink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link video elements";
 	}
 }
@@ -573,10 +573,10 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	// depth pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
 	dh264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
-	dqueue = gst_element_factory_make("queue","dqueue");
+	/*dqueue = gst_element_factory_make("queue","dqueue");
 
 	// TODO: this improves sync but makes the streams way more noisy
-	g_object_set(dqueue,"leaky",2, "max-size-buffers",100,NULL);
+	g_object_set(dqueue,"leaky",2, "max-size-buffers",100,NULL);*/
 
 	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
 	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
@@ -614,8 +614,8 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
 
 	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), dh264depay, dqueue, avdec_h264, vconvert, depthSink, NULL);
-	if(!gst_element_link_many(dh264depay, dqueue, avdec_h264, vconvert, depthSink, NULL)){
+	gst_bin_add_many(GST_BIN(pipeline), dh264depay, avdec_h264, vconvert, depthSink, NULL);
+	if(!gst_element_link_many(dh264depay, avdec_h264, vconvert, depthSink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link depth elements";
 	}
 }
@@ -924,6 +924,8 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 
 	rtpbin	 = gst_element_factory_make("rtpbin","rtpbin");
 	g_object_set(rtpbin,"latency",latency,NULL);
+	g_object_set(rtpbin,"drop-on-latency",TRUE,NULL);
+	g_object_set(rtpbin,"do-lost",TRUE,NULL);
 
 	if(!gst_bin_add(GST_BIN(pipeline),rtpbin)){
 		ofLogError() << "couldn't add rtpbin to pipeline";
@@ -994,8 +996,7 @@ void ofxGstRTPClient::latencyChanged(int & latency){
 }
 
 void ofxGstRTPClient::dropChanged(bool & drop){
-	g_object_set(vqueue,"leaky",(drop?2:0),NULL);
-	g_object_set(dqueue,"leaky",(drop?2:0),NULL);
+	g_object_set(rtpbin,"drop-on-latency",(drop?TRUE:FALSE),NULL);
 }
 
 void ofxGstRTPClient::play(){
@@ -1151,11 +1152,8 @@ bool ofxGstRTPClient::on_message(GstMessage * msg){
 		GstObject * messageSrc = GST_MESSAGE_SRC(msg);
 		ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
 		ofLogVerbose(LOG_NAME) << "Message source type: " << G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(messageSrc));
-		if(string(G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(messageSrc)))=="GstRtpSession"){
-			ofLogVerbose(LOG_NAME) << "message from " <<  G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(messageSrc));
-
-			//gst_element_get_request_pad(rtpbin,"recv_rtp_src_"+ofToString(session)+"_"+ofToString(ssrc)+"_"+ofToString(pt));
-		}
+		ofLogVerbose(LOG_NAME) << "With structure name: " << gst_structure_get_name(gst_message_get_structure(msg));
+		ofLogVerbose(LOG_NAME) << gst_structure_to_string(gst_message_get_structure(msg));
 		return true;
 	}
 	case GST_MESSAGE_QOS:{

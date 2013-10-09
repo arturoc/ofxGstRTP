@@ -21,6 +21,7 @@
 
 #include "ofxGstRTPClient.h"
 
+
 //  sends the output of v4l2src as h264 encoded RTP on port 5000, RTCP is sent on
 //  port 5001. The destination is 127.0.0.1.
 //  the video receiver RTCP reports are received on port 5005
@@ -99,6 +100,16 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,width(0)
 ,height(0)
 ,lastSessionNumber(0)
+,videoSessionNumber(-1)
+,audioSessionNumber(-1)
+,depthSessionNumber(-1)
+,oscSessionNumber(-1)
+,videoSSRC(0)
+,audioSSRC(0)
+,depthSSRC(0)
+,oscSSRC(0)
+,sendVideoKeyFrame(true)
+,sendDepthKeyFrame(true)
 #if ENABLE_NAT_TRANSVERSAL
 ,videoStream(NULL)
 ,depthStream(NULL)
@@ -137,7 +148,7 @@ ofxGstRTPServer::~ofxGstRTPServer() {
 
 
 void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
-	int sessionNumber = lastSessionNumber;
+	videoSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 	// video elements
 	// ------------------
@@ -148,7 +159,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 		string vcaps="video/x-raw,format=RGB,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string vsource= velem + " ! queue leaky=2 max-size-buffers=100 ! " + vcaps + " ! videoconvert name=vconvert1";
+		string vsource= velem + " ! " + vcaps + " ! videoconvert name=vconvert1";
 
 		// h264 encoder + rtp pay
 		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
@@ -161,8 +172,8 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 
 #if ENABLE_NAT_TRANSVERSAL
 		if(videoStream){
-			vrtpsink="nicesink ts-offset=0 name=vrtpsink";
-			vrtpcsink="nicesink  sync=false async=false name=vrtcpsink";
+			vrtpsink="nicesink ts-offset=0 name=vrtpsink max-lateness=5000000000 ";
+			vrtpcsink="nicesink  sync=false async=false name=vrtcpsink max-lateness=5000000000 ";
 			vrtpcsrc="nicesrc name=vrtcpsrc";
 		}else
 #endif
@@ -172,10 +183,10 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 			vrtpcsrc="udpsrc port=" + ofToString(port+3) + " name=vrtcpsrc";
 		}
 
-	pipelineStr += " " + vsource + " ! " + venc + " ! rtpbin.send_rtp_sink_" + ofToString(sessionNumber) +
-				" rtpbin.send_rtp_src_" + ofToString(sessionNumber) + " ! " + vrtpsink +
-				" rtpbin.send_rtcp_src_" + ofToString(sessionNumber) + " ! " + vrtpcsink +
-				" " + vrtpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
+	pipelineStr += " " + vsource + " ! " + venc + " ! rtpbin.send_rtp_sink_" + ofToString(videoSessionNumber) +
+				" rtpbin.send_rtp_src_" + ofToString(videoSessionNumber) + " ! " + vrtpsink +
+				" rtpbin.send_rtcp_src_" + ofToString(videoSessionNumber) + " ! " + vrtpcsink +
+				" " + vrtpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(videoSessionNumber) + " ";
 
 	// create a pixels pool of the correct w,h and bpp to use on newFrame
 	bufferPool = new ofxGstBufferPool<unsigned char>(w,h,3);
@@ -184,7 +195,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 
 
 void ofxGstRTPServer::addAudioChannel(int port){
-	int sessionNumber = lastSessionNumber;
+	audioSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
 	// audio elements
@@ -223,8 +234,8 @@ void ofxGstRTPServer::addAudioChannel(int port){
 
 #if ENABLE_NAT_TRANSVERSAL
 		if(audioStream){
-			artpsink="nicesink ts-offset=0 name=artpsink";
-			artpcsink="nicesink sync=false async=false name=artcpsink";
+			artpsink="nicesink ts-offset=0 name=artpsink max-lateness=5000000000 ";
+			artpcsink="nicesink sync=false async=false name=artcpsink max-lateness=5000000000 ";
 			artpcsrc="nicesrc name=artcpsrc";
 		}else
 #endif
@@ -235,10 +246,10 @@ void ofxGstRTPServer::addAudioChannel(int port){
 		}
 
 		// audio
-	pipelineStr += " " +  asource + " ! " + aenc + " ! rtpbin.send_rtp_sink_" + ofToString(sessionNumber) +
-			" rtpbin.send_rtp_src_" + ofToString(sessionNumber) + " ! " + artpsink +
-			" rtpbin.send_rtcp_src_" + ofToString(sessionNumber) + " ! " + artpcsink +
-			" " + artpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
+	pipelineStr += " " +  asource + " ! " + aenc + " ! rtpbin.send_rtp_sink_" + ofToString(audioSessionNumber) +
+			" rtpbin.send_rtp_src_" + ofToString(audioSessionNumber) + " ! " + artpsink +
+			" rtpbin.send_rtcp_src_" + ofToString(audioSessionNumber) + " ! " + artpcsink +
+			" " + artpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(audioSessionNumber) + " ";
 
 #if ENABLE_ECHO_CANCEL
 	audioChannelReady = true;
@@ -247,7 +258,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 }
 
 void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool depth16){
-	int sessionNumber = lastSessionNumber;
+	depthSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
 	// depth elements
@@ -264,7 +275,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		}
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
-		string dsource= delem + " ! queue leaky=2 max-size-buffers=100 ! " + dcaps + " ! videoconvert name=dconvert1";
+		string dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
 		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
@@ -277,8 +288,8 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 
 #if ENABLE_NAT_TRANSVERSAL
 		if(depthStream){
-			drtpsink="nicesink ts-offset=0 name=drtpsink";
-			drtpcsink="nicesink sync=false async=false name=drtcpsink";
+			drtpsink="nicesink ts-offset=0 name=drtpsink max-lateness=5000000000 ";
+			drtpcsink="nicesink sync=false async=false name=drtcpsink max-lateness=5000000000 ";
 			drtpcsrc="nicesrc name=drtcpsrc";
 		}else
 #endif
@@ -289,10 +300,10 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		}
 
 	// depth
-	pipelineStr += " " +  dsource + " ! " + denc + " ! rtpbin.send_rtp_sink_" + ofToString(sessionNumber) +
-		" rtpbin.send_rtp_src_" + ofToString(sessionNumber) + " ! " + drtpsink +
-		" rtpbin.send_rtcp_src_" + ofToString(sessionNumber) + " ! " + drtpcsink +
-		" " + drtpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
+	pipelineStr += " " +  dsource + " ! " + denc + " ! rtpbin.send_rtp_sink_" + ofToString(depthSessionNumber) +
+		" rtpbin.send_rtp_src_" + ofToString(depthSessionNumber) + " ! " + drtpsink +
+		" rtpbin.send_rtcp_src_" + ofToString(depthSessionNumber) + " ! " + drtpcsink +
+		" " + drtpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(depthSessionNumber) + " ";
 
 	if(depth16){
 		bufferPoolDepth = new ofxGstBufferPool<unsigned char>(w,h,3);
@@ -303,7 +314,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 }
 
 void ofxGstRTPServer::addOscChannel(int port){
-	int sessionNumber = lastSessionNumber;
+	oscSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
 	// osc elements
@@ -325,8 +336,8 @@ void ofxGstRTPServer::addOscChannel(int port){
 
 #if ENABLE_NAT_TRANSVERSAL
 		if(oscStream){
-			ortpsink="nicesink ts-offset=0 name=ortpsink";
-			ortpcsink="nicesink sync=false async=false name=ortcpsink";
+			ortpsink="nicesink ts-offset=0 name=ortpsink max-lateness=5000000000 ";
+			ortpcsink="nicesink sync=false async=false name=ortcpsink max-lateness=5000000000 ";
 			ortpcsrc="nicesrc name=ortcpsrc";
 		}else
 #endif
@@ -338,10 +349,10 @@ void ofxGstRTPServer::addOscChannel(int port){
 		}
 
 	// osc
-	pipelineStr += " " + osource + " ! " + oenc + " ! rtpbin.send_rtp_sink_" + ofToString(sessionNumber) +
-		" rtpbin.send_rtp_src_" + ofToString(sessionNumber) + " ! " + ortpsink +
-		" rtpbin.send_rtcp_src_" + ofToString(sessionNumber) + " ! " + ortpcsink +
-		" " + ortpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(sessionNumber) + " ";
+	pipelineStr += " " + osource + " ! " + oenc + " ! rtpbin.send_rtp_sink_" + ofToString(oscSessionNumber) +
+		" rtpbin.send_rtp_src_" + ofToString(oscSessionNumber) + " ! " + ortpsink +
+		" rtpbin.send_rtcp_src_" + ofToString(oscSessionNumber) + " ! " + ortpcsink +
+		" " + ortpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(oscSessionNumber) + " ";
 }
 
 #if ENABLE_NAT_TRANSVERSAL
@@ -494,6 +505,7 @@ void ofxGstRTPServer::play(){
 
 	// get the rtp and rtpc elements from the pipeline so we can read their properties
 	// during execution
+	rtpbin = gst.getGstElementByName("rtpbin");
 	vRTPsink = gst.getGstElementByName("vrtpsink");
 	vRTPCsink = gst.getGstElementByName("vrtcpsink");
 	vRTPCsrc = gst.getGstElementByName("vrtcpsrc");
@@ -574,6 +586,7 @@ void ofxGstRTPServer::play(){
 	if(appSrcDepth) gst_app_src_set_stream_type((GstAppSrc*)appSrcDepth,GST_APP_STREAM_TYPE_STREAM);
 	if(appSrcOsc) gst_app_src_set_stream_type((GstAppSrc*)appSrcOsc,GST_APP_STREAM_TYPE_STREAM);
 
+	g_signal_connect(rtpbin,"on-new-ssrc",G_CALLBACK(&ofxGstRTPServer::on_new_ssrc_handler),this);
 
 #if ENABLE_ECHO_CANCEL
 	if(echoCancel && audioChannelReady){
@@ -584,6 +597,95 @@ void ofxGstRTPServer::play(){
 
 	gst.startPipeline();
 	gst.play();
+
+	ofAddListener(ofEvents().update,this,&ofxGstRTPServer::update);
+}
+
+void ofxGstRTPServer::on_new_ssrc_handler(GstBin *rtpbin, guint session, guint ssrc, ofxGstRTPServer * server){
+	ofLogVerbose(LOG_NAME) << "new ssrc " << ssrc << " for session " << session;
+	if(session==server->audioSessionNumber){
+		server->audioSSRC = ssrc;
+	}else if(session==server->videoSessionNumber){
+		server->videoSSRC = ssrc;
+		server->sendVideoKeyFrame = false;
+	}else if(session==server->depthSessionNumber){
+		server->depthSSRC = ssrc;
+		server->sendDepthKeyFrame = false;
+	}else if(session==server->oscSessionNumber){
+		server->oscSSRC = ssrc;
+	}
+}
+
+void ofxGstRTPServer::update(ofEventArgs & args){
+	if(ofGetFrameNum()%60==0){
+		if(videoSSRC!=0 && videoSessionNumber!=-1){
+			GObject * internalSession;
+			g_signal_emit_by_name(rtpbin,"get-internal-session",videoSessionNumber,&internalSession,NULL);
+
+			GObject * remoteSource;
+			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", videoSSRC, &remoteSource, NULL);
+
+			if(remoteSource){
+				GstStructure *stats;
+				g_object_get (remoteSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+			}else{
+				ofLogError() << "couldn't get stats";
+			}
+		}
+
+		if(depthSSRC!=0 && depthSessionNumber!=-1){
+			GObject * internalSession;
+			g_signal_emit_by_name(rtpbin,"get-internal-session",depthSessionNumber,&internalSession,NULL);
+
+			GObject * remoteSource;
+			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", depthSSRC, &remoteSource, NULL);
+
+			if(remoteSource){
+				GstStructure *stats;
+				g_object_get (remoteSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+			}else{
+				ofLogError() << "couldn't get stats";
+			}
+		}
+
+		if(audioSSRC!=0 && audioSessionNumber!=-1){
+			GObject * internalSession;
+			g_signal_emit_by_name(rtpbin,"get-internal-session",audioSessionNumber,&internalSession,NULL);
+
+			GObject * remoteSource;
+			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", audioSSRC, &remoteSource, NULL);
+
+			if(remoteSource){
+				GstStructure *stats;
+				g_object_get (remoteSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+			}else{
+				ofLogError() << "couldn't get stats";
+			}
+		}
+
+		if(oscSSRC!=0 && oscSessionNumber!=-1){
+			GObject * internalSession;
+			g_signal_emit_by_name(rtpbin,"get-internal-session",oscSessionNumber,&internalSession,NULL);
+
+			GObject * remoteSource;
+			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", oscSSRC, &remoteSource, NULL);
+
+			if(remoteSource){
+				GstStructure *stats;
+				g_object_get (remoteSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+			}else{
+				ofLogError() << "couldn't get stats";
+			}
+		}
+	}
 }
 
 bool ofxGstRTPServer::on_message(GstMessage * msg){
@@ -593,6 +695,8 @@ bool ofxGstRTPServer::on_message(GstMessage * msg){
 		GstObject * messageSrc = GST_MESSAGE_SRC(msg);
 		ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
 		ofLogVerbose(LOG_NAME) << "Message source type: " << G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(messageSrc));
+		ofLogVerbose(LOG_NAME) << "With structure name: " << gst_structure_get_name(gst_message_get_structure(msg));
+		ofLogVerbose(LOG_NAME) << gst_structure_to_string(gst_message_get_structure(msg));
 		return true;
 	}
 	case GST_MESSAGE_QOS:{
@@ -639,7 +743,8 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	// get current time from the pipeline
 	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+	GstClockTime time = gst_clock_get_time (clock);
+	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
 	if(firstVideoFrame){
@@ -669,22 +774,15 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	GST_BUFFER_DURATION(buffer) = now-prevTimestamp;
 	prevTimestamp = now;
 
-	// add video format metadata to the buffer
-	/*const GstVideoFormatInfo *finfo = gst_video_format_get_info(GST_VIDEO_FORMAT_RGB);
-	gsize offset[GST_VIDEO_MAX_PLANES];
-	gint stride[GST_VIDEO_MAX_PLANES];
 
-	int n_planes = 3;
-	int offs = 0;
-	for (int i = 0; i < n_planes; i++) {
-	  offset[i] = offs;
-	  stride[i] = width*3;
-
-	  offs += stride[i] * GST_VIDEO_FORMAT_INFO_SCALE_HEIGHT (finfo, i, height);
+	if(sendVideoKeyFrame){
+		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
+																 time,
+																 now,
+																 TRUE,
+																 0);
+		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
 	}
-	gst_buffer_add_video_meta_full (buffer, GST_VIDEO_FRAME_FLAG_NONE,
-			GST_VIDEO_FORMAT_RGB, width, height, 3,
-			offset, stride);*/
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcVideoRGB, buffer);
@@ -695,8 +793,6 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 
 
 void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
-	//unsigned long long time = ofGetElapsedTimeMicros();
-
 	// here we push new depth frames in the pipeline, it's important
 	// to timestamp them properly so gstreamer can sync them with the
 	// audio.
@@ -706,7 +802,8 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	// get current time from the pipeline
 	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+	GstClockTime time = gst_clock_get_time (clock);
+	GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
 	if(firstDepthFrame){
@@ -737,30 +834,20 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
 	prevTimestampDepth = now;
 
-	// add video format metadata to the buffer
-	/*const GstVideoFormatInfo *finfo = gst_video_format_get_info(GST_VIDEO_FORMAT_GRAY8);
-	gsize offset[GST_VIDEO_MAX_PLANES];
-	gint stride[GST_VIDEO_MAX_PLANES];
-
-	int n_planes = 1;
-	int offs = 0;
-	for (int i = 0; i < n_planes; i++) {
-	  offset[i] = offs;
-	  stride[i] = width;
-
-	  offs += stride[i] * GST_VIDEO_FORMAT_INFO_SCALE_HEIGHT (finfo, i, height);
+	if(sendDepthKeyFrame){
+		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
+																 time,
+																 now,
+																 TRUE,
+																 0);
+		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
 	}
-	gst_buffer_add_video_meta_full (buffer, GST_VIDEO_FRAME_FLAG_NONE,
-			GST_VIDEO_FORMAT_GRAY8, width, height, 1,
-			offset, stride);*/
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcDepth, buffer);
 	if (flow_return != GST_FLOW_OK) {
 		ofLogError() << "error pushing depth buffer: flow_return was " << flow_return;
 	}
-
-	//cout << ofGetElapsedTimeMicros() - time << endl;
 }
 
 
@@ -805,23 +892,6 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	GST_BUFFER_PTS (buffer) = now;
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
 	prevTimestampDepth = now;
-
-	// add video format metadata to the buffer
-	/*const GstVideoFormatInfo *finfo = gst_video_format_get_info(GST_VIDEO_FORMAT_RGB);
-	gsize offset[GST_VIDEO_MAX_PLANES];
-	gint stride[GST_VIDEO_MAX_PLANES];
-
-	int n_planes = 3;
-	int offs = 0;
-	for (int i = 0; i < n_planes; i++) {
-	  offset[i] = offs;
-	  stride[i] = width*3;
-
-	  offs += stride[i] * GST_VIDEO_FORMAT_INFO_SCALE_HEIGHT (finfo, i, height);
-	}
-	gst_buffer_add_video_meta_full (buffer, GST_VIDEO_FRAME_FLAG_NONE,
-			GST_VIDEO_FORMAT_RGB, width, height, 1,
-			offset, stride);*/
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcDepth, buffer);

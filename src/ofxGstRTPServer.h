@@ -92,10 +92,13 @@ private:
 	void dBitRateChanged(int & bitrate);
 	void aBitRateChanged(int & bitrate);
 	void appendMessage( ofxOscMessage& message, osc::OutboundPacketStream& p );
+	static void on_new_ssrc_handler(GstBin *rtpbin, guint session, guint ssrc, ofxGstRTPServer * rtpClient);
+	void update(ofEventArgs& args);
 
 
 	ofGstUtils gst;
 	ofGstUtils gstAudioIn;
+	GstElement * rtpbin;
 	GstElement * vRTPsink;
 	GstElement * vRTPCsink;
 	GstElement * vRTPCsrc;
@@ -134,7 +137,10 @@ private:
 
 	string pipelineStr;
 	string dest;
-	int lastSessionNumber;
+	guint lastSessionNumber;
+	guint audioSessionNumber, videoSessionNumber, depthSessionNumber, oscSessionNumber;
+	guint audioSSRC, videoSSRC, depthSSRC, oscSSRC;
+	bool sendVideoKeyFrame, sendDepthKeyFrame;
 
 #if ENABLE_NAT_TRANSVERSAL
 	ofxNiceStream * videoStream;
