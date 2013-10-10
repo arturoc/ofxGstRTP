@@ -215,7 +215,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 		#elif defined(TARGET_OSX)
 			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
 			// FIXME: we should detect the format somehow and set it automatically
-			aelem = "osxaudiosrc ! audio/x-raw,rate=44100,channels=1 name=audiocapture ";
+			aelem = "osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ";
 		#endif
 		}
 
@@ -542,7 +542,7 @@ void ofxGstRTPServer::play(){
 		#elif defined(TARGET_OSX)
 			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
 			// FIXME: we should detect the format somehow and set it automatically
-			gstAudioIn.setPipelineWithSink("osxaudiosrc ! audio/x-raw,rate=44100,channels=1 name=audiocapture ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
+			gstAudioIn.setPipelineWithSink("osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
 		#endif
 
 		appSinkAudio = gstAudioIn.getGstElementByName("audioechosink");
