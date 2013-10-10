@@ -112,9 +112,9 @@ ofxGstRTPClient::ofxGstRTPClient()
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
 
-	latency.set("latency",0,0,2000);
+	latency.set("latency",200,0,2000);
 	latency.addListener(this,&ofxGstRTPClient::latencyChanged);
-	drop.set("drop",false);
+	drop.set("drop",true);
 	drop.addListener(this,&ofxGstRTPClient::dropChanged);
 	parameters.setName("gst rtp client");
 	parameters.add(latency);

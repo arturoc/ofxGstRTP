@@ -9,6 +9,7 @@
 
 #include "ofMain.h"
 #include "ofxGstXMPPRTP.h"
+#include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
 
@@ -39,4 +40,6 @@ class ofApp : public ofBaseApp{
 		ofVideoGrabber grabber;
 		ofTexture remoteVideo;
 		int calling;
+		ofxPanel gui;
+		int guiState;
 };

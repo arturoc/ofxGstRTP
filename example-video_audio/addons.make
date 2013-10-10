@@ -1,4 +1,5 @@
 ofxOsc
+ofxGui
 ofxXMPP
 ofxNice
 ofxGStreamer

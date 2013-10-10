@@ -26,6 +26,9 @@ void ofApp::setup(){
 	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
 	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
 	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
+
+	guiState = 0;
+	gui.setup(rtp.parameters,"settings.xml",ofGetWidth()-250,10);
 }
 
 void ofApp::onCallReceived(string & from){
@@ -59,35 +62,39 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-	const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
+	if(guiState==0){
+		const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
 
-	for(size_t i=0;i<friends.size();i++){
-		ofSetColor(0);
-		if(calling==i){
-			if(rtp.getXMPP().getJingleState()==ofxXMPP::SessionAccepted){
-				ofSetColor(127);
+		for(size_t i=0;i<friends.size();i++){
+			ofSetColor(0);
+			if(calling==i){
+				if(rtp.getXMPP().getJingleState()==ofxXMPP::SessionAccepted){
+					ofSetColor(127);
+				}else{
+					ofSetColor(ofMap(sin(ofGetElapsedTimef()*2),-1,1,50,127));
+				}
+				ofRect(ofGetWidth()-300,calling*20+5,300,20);
+				ofSetColor(255);
+			}
+			ofDrawBitmapString(friends[i].userName,ofGetWidth()-250,20+20*i);
+			if(friends[i].show==ofxXMPPShowAvailable){
+				ofSetColor(ofColor::green);
 			}else{
-				ofSetColor(ofMap(sin(ofGetElapsedTimef()*2),-1,1,50,127));
+				ofSetColor(ofColor::orange);
 			}
-			ofRect(ofGetWidth()-300,calling*20+5,300,20);
-			ofSetColor(255);
-		}
-		ofDrawBitmapString(friends[i].userName,ofGetWidth()-250,20+20*i);
-		if(friends[i].show==ofxXMPPShowAvailable){
-			ofSetColor(ofColor::green);
-		}else{
-			ofSetColor(ofColor::orange);
-		}
-		ofCircle(ofGetWidth()-270,20+20*i-5,3);
-		//cout << friends[i].userName << endl;
-		for(size_t j=0;j<friends[i].capabilities.size();j++){
-			if(friends[i].capabilities[j]=="telekinect"){
-				ofNoFill();
-				ofCircle(ofGetWidth()-270,20+20*i-5,5);
-				ofFill();
-				break;
+			ofCircle(ofGetWidth()-270,20+20*i-5,3);
+			//cout << friends[i].userName << endl;
+			for(size_t j=0;j<friends[i].capabilities.size();j++){
+				if(friends[i].capabilities[j]=="telekinect"){
+					ofNoFill();
+					ofCircle(ofGetWidth()-270,20+20*i-5,5);
+					ofFill();
+					break;
+				}
 			}
 		}
+	}else{
+		gui.draw();
 	}
 
 	ofSetColor(255);
@@ -97,6 +104,13 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
+	if(key==OF_KEY_UP){
+		guiState++;
+		guiState%=2;
+	}else if(key==OF_KEY_DOWN){
+		guiState--;
+		guiState%=2;
+	}
 }
 
 //--------------------------------------------------------------
