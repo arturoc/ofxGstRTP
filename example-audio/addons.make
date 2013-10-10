@@ -1,7 +1,8 @@
 ofxOsc
+ofxGui
 ofxXMPP
 ofxNice
-ofxGstRTP
-ofxGui
-ofxEchoCancel
 ofxGStreamer
+ofxGstRTP
+# this addon is needed if echo cancel is enabled in ofGstRTPConstants.h 
+ofxEchoCancel

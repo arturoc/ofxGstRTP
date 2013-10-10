@@ -1,7 +1,7 @@
-#include "testApp.h"
+#include "ofApp.h"
 
 //--------------------------------------------------------------
-void testApp::setup(){
+void ofApp::setup(){
 	ofXml settings;
 	settings.load("settings.xml");
 	string server = settings.getValue("server");
@@ -21,30 +21,30 @@ void testApp::setup(){
 
 	ofBackground(255);
 
-	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
-	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
-	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
 }
 
 
-void testApp::onCallReceived(string & from){
+void ofApp::onCallReceived(string & from){
 	rtp.acceptCall();
 }
 
-void testApp::onCallAccepted(string & from){
+void ofApp::onCallAccepted(string & from){
 
 }
 
-void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
+void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 }
 
 
-void testApp::exit(){
+void ofApp::exit(){
 }
 
 
 //--------------------------------------------------------------
-void testApp::update(){
+void ofApp::update(){
 	grabber.update();
 	if(grabber.isFrameNew()){
 		rtp.getServer().newFrame(grabber.getPixelsRef());
@@ -76,7 +76,7 @@ void testApp::update(){
 }
 
 //--------------------------------------------------------------
-void testApp::draw(){
+void ofApp::draw(){
 	const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
 
 	for(size_t i=0;i<friends.size();i++){
@@ -122,21 +122,21 @@ void testApp::draw(){
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed(int key){
+void ofApp::keyPressed(int key){
 }
 
 //--------------------------------------------------------------
-void testApp::keyReleased(int key){
-
-}
-
-//--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y ){
+void ofApp::keyReleased(int key){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseMoved(int x, int y ){
+
+}
+
+//--------------------------------------------------------------
+void ofApp::mouseDragged(int x, int y, int button){
 	ofVec2f mouse(x,y);
 	ofRectangle remoteRect(0,0,640,480);
 	if(remoteRect.inside(mouse)){
@@ -145,7 +145,7 @@ void testApp::mouseDragged(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button){
 	ofVec2f mouse(x,y);
 	ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
 	ofRectangle remoteRect(0,0,640,480);
@@ -159,21 +159,21 @@ void testApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
 
 }
 
 //--------------------------------------------------------------
-void testApp::gotMessage(ofMessage msg){
+void ofApp::gotMessage(ofMessage msg){
 
 }
 
 //--------------------------------------------------------------
-void testApp::dragEvent(ofDragInfo dragInfo){ 
+void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
 }

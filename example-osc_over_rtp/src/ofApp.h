@@ -1,5 +1,5 @@
 /*
- * testApp.h
+ * ofApp.h
  *
  *  Created on: Jul 19, 2013
  *      Author: arturo castro
@@ -10,7 +10,7 @@
 #include "ofMain.h"
 #include "ofxGstXMPPRTP.h"
 
-class testApp : public ofBaseApp{
+class ofApp : public ofBaseApp{
 
 	public:
 		void setup();
@@ -36,10 +36,7 @@ class testApp : public ofBaseApp{
 		void onCallFinished(ofxXMPPTerminateReason & reason);
 
 		ofxGstXMPPRTP rtp;
-		ofVideoGrabber grabber;
-		ofTexture remoteVideo;
 		int calling;
-
 
 		ofPolyline localPoly;
 		ofPolyline remotePoly;

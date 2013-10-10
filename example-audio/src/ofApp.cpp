@@ -1,61 +1,60 @@
-#include "testApp.h"
+#include "ofApp.h"
 
 //--------------------------------------------------------------
-void testApp::setup(){
+void ofApp::setup(){
 	ofXml settings;
 	settings.load("settings.xml");
 	string server = settings.getValue("server");
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
-	grabber.initGrabber(640,480);
-	remoteVideo.allocate(640,480,GL_RGB);
+	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
+
 
 	rtp.setup(200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
-	rtp.addSendVideoChannel(640,480,30);
 	rtp.addSendAudioChannel();
 	calling = -1;
 
 	ofBackground(255);
 
-	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
-	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
-	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+	gui.setup();
+	gui.add(rtp.parameters);
+
+	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
 }
 
-void testApp::onCallReceived(string & from){
+void ofApp::onCallReceived(string & from){
 	rtp.acceptCall();
 }
 
-void testApp::onCallAccepted(string & from){
+void ofApp::onCallAccepted(string & from){
 
 }
 
-void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
+void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 }
 
 
-void testApp::exit(){
+void ofApp::exit(){
 }
 
 
 //--------------------------------------------------------------
-void testApp::update(){
-	grabber.update();
-	if(grabber.isFrameNew()){
-		rtp.getServer().newFrame(grabber.getPixelsRef());
-	}
+void ofApp::update(){
 
-	rtp.getClient().update();
-	if(rtp.getClient().isFrameNewVideo()){
-		remoteVideo.loadData(rtp.getClient().getPixelsVideo());
-	}
+
 }
 
 //--------------------------------------------------------------
-void testApp::draw(){
+void ofApp::draw(){
+	gui.draw();
+
+	ofTranslate(0,40);
 	const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
 
 	for(size_t i=0;i<friends.size();i++){
@@ -87,34 +86,31 @@ void testApp::draw(){
 		}
 	}
 
-	ofSetColor(255);
-	remoteVideo.draw(0,0);
-	grabber.draw(400,300,240,180);
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed(int key){
+void ofApp::keyPressed(int key){
 }
 
 //--------------------------------------------------------------
-void testApp::keyReleased(int key){
-
-}
-
-//--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y ){
+void ofApp::keyReleased(int key){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseMoved(int x, int y ){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button){
+
+}
+
+//--------------------------------------------------------------
+void ofApp::mousePressed(int x, int y, int button){
 	if(calling==-1){
-		ofVec2f mouse(x,y);
+		ofVec2f mouse(x,y-40);
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
 		if(friendsRect.inside(mouse)){
 			calling = mouse.y/20;
@@ -124,21 +120,21 @@ void testApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
 
 }
 
 //--------------------------------------------------------------
-void testApp::gotMessage(ofMessage msg){
+void ofApp::gotMessage(ofMessage msg){
 
 }
 
 //--------------------------------------------------------------
-void testApp::dragEvent(ofDragInfo dragInfo){ 
+void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
 }

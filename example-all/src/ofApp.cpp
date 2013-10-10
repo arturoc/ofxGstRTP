@@ -1,4 +1,4 @@
-#include "testApp.h"
+#include "ofApp.h"
 #include "ofxGstRTPUtils.h"
 //#define USE_16BIT_DEPTH
 
@@ -31,7 +31,7 @@ string vertexShader = STRINGIFY(
 
 
 //--------------------------------------------------------------
-void testApp::setup(){
+void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 
 	ofXml settings;
@@ -99,13 +99,13 @@ void testApp::setup(){
 
 	calling = -1;
 
-	ofAddListener(rtp.getXMPP().newMessage,this,&testApp::onNewMessage);
+	ofAddListener(rtp.getXMPP().newMessage,this,&ofApp::onNewMessage);
 
 	guiState = Friends;
 
-	ofAddListener(rtp.callReceived,this,&testApp::onCallReceived);
-	ofAddListener(rtp.callFinished,this,&testApp::onCallFinished);
-	ofAddListener(rtp.callAccepted,this,&testApp::onCallAccepted);
+	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
+	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
+	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
 
 	callingState = Disconnected;
 
@@ -113,18 +113,18 @@ void testApp::setup(){
 	lastRing = 0;
 }
 
-void testApp::onCallReceived(string & from){
+void ofApp::onCallReceived(string & from){
 	callFrom = ofSplitString(from,"/")[0];
 	callingState = ReceivingCall;
 }
 
-void testApp::onCallAccepted(string & from){
+void ofApp::onCallAccepted(string & from){
 	if(callingState == Calling){
 		callingState = InCall;
 	}
 }
 
-void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
+void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	if(callingState==Calling){
 		ofSystemAlertDialog("Call declined");
 	}
@@ -137,17 +137,17 @@ void testApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	rtp.addSendAudioChannel();*/
 }
 
-void testApp::onNewMessage(ofxXMPPMessage & msg){
+void ofApp::onNewMessage(ofxXMPPMessage & msg){
 	messages.push_back(msg);
 	if(messages.size()>8) messages.pop_front();
 }
 
-void testApp::exit(){
+void ofApp::exit(){
 }
 
 
 //--------------------------------------------------------------
-void testApp::update(){
+void ofApp::update(){
 	{
 		kinect.update();
 
@@ -272,7 +272,7 @@ void testApp::update(){
 }
 
 //--------------------------------------------------------------
-void testApp::draw(){
+void ofApp::draw(){
 	switch(drawState){
 	case LocalRemote:
 		ofSetColor(255);
@@ -418,7 +418,7 @@ void testApp::draw(){
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed(int key){
+void ofApp::keyPressed(int key){
 	if(key==OF_KEY_RIGHT){
 		drawState =(DrawState)(drawState+1);
 		drawState = (DrawState)(drawState%NumStates);
@@ -447,22 +447,22 @@ void testApp::keyPressed(int key){
 }
 
 //--------------------------------------------------------------
-void testApp::keyReleased(int key){
+void ofApp::keyReleased(int key){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y ){
+void ofApp::mouseMoved(int x, int y ){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button){
 	ofVec2f mouse(x,y);
 	if(callingState==Disconnected && guiState==Friends){
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
@@ -483,21 +483,21 @@ void testApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
 
 }
 
 //--------------------------------------------------------------
-void testApp::gotMessage(ofMessage msg){
+void ofApp::gotMessage(ofMessage msg){
 
 }
 
 //--------------------------------------------------------------
-void testApp::dragEvent(ofDragInfo dragInfo){ 
+void ofApp::dragEvent(ofDragInfo dragInfo){
 
 }

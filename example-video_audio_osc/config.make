@@ -9,15 +9,6 @@
 #       (default) OF_ROOT = ../../.. 
 ################################################################################
 # OF_ROOT = ../../..
-ifneq ($(wildcard config.ofroot.mk),)
-    include config.ofroot.mk
-else
-$(shell echo "OF_ROOT=../../.." > config.ofroot.mk)
-endif
-
-$(info OF_ROOT=$(OF_ROOT))
-
-USE_GST=1
 
 ################################################################################
 # PROJECT ROOT
@@ -70,9 +61,7 @@ USE_GST=1
 #
 #   Note: Leave a leading space when adding list items with the += operator
 ################################################################################
-PROJECT_EXCLUSIONS = $(PROJECT_ROOT)/webrtcbits/talk%
-#PROJECT_EXCLUSIONS += $(PROJECT_ROOT)/webrtcbits/talk/base/win32
-#PROJECT_EXCLUSIONS += $(PROJECT_ROOT)/webrtcbits/talk/base/mac
+# PROJECT_EXCLUSIONS =
 
 ################################################################################
 # PROJECT LINKER FLAGS
@@ -81,19 +70,14 @@ PROJECT_EXCLUSIONS = $(PROJECT_ROOT)/webrtcbits/talk%
 #		(default) PROJECT_LDFLAGS = -Wl,-rpath=./libs
 #
 #   Note: Leave a leading space when adding list items with the += operator
-#
+################################################################################
+
 # Currently, shared libraries that are needed are copied to the 
 # $(PROJECT_ROOT)/bin/libs directory.  The following LDFLAGS tell the linker to
 # add a runtime path to search for those shared libraries, since they aren't 
 # incorporated directly into the final executable application binary.
-################################################################################
-#PROJECT_LDFLAGS=Shiny/lib/libShiny.a
-#PROJECT_LDFLAGS=-lprofiler
-PROJECT_LDFLAGS = $(shell pkg-config nice --libs)
-
-# for webrtc talk
-# jsoncpp 
-# -ldl
+# TODO: should this be a default setting?
+# PROJECT_LDFLAGS=-Wl,-rpath=./libs
 
 ################################################################################
 # PROJECT DEFINES
@@ -104,12 +88,7 @@ PROJECT_LDFLAGS = $(shell pkg-config nice --libs)
 #
 #   Note: Leave a leading space when adding list items with the += operator
 ################################################################################
-# for webrtc talk
-#PROJECT_DEFINES = EXPAT_RELATIVE_PATH=1
-#PROJECT_DEFINES += POSIX=1
-#PROJECT_DEFINES += LINUX
-#PROJECT_DEFINES += SSL_USE_OPENSSL
-#PROJECT_DEFINES += JSONCPP_RELATIVE_PATH
+# PROJECT_DEFINES = 
 
 ################################################################################
 # PROJECT CFLAGS
@@ -126,9 +105,7 @@ PROJECT_LDFLAGS = $(shell pkg-config nice --libs)
 #
 #   Note: Leave a leading space when adding list items with the += operator
 ################################################################################
-PROJECT_CFLAGS = $(shell pkg-config nice --cflags)
-# for webrtc talk
-# jsoncpp 
+# PROJECT_CFLAGS = 
 
 ################################################################################
 # PROJECT OPTIMIZATION CFLAGS

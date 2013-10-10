@@ -1,5 +1,5 @@
 /*
- * testApp.h
+ * ofApp.h
  *
  *  Created on: Jul 19, 2013
  *      Author: arturo castro
@@ -10,7 +10,7 @@
 #include "ofMain.h"
 #include "ofxGstXMPPRTP.h"
 
-class testApp : public ofBaseApp{
+class ofApp : public ofBaseApp{
 
 	public:
 		void setup();

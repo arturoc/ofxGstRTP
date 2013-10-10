@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-               BuildableName = "example-all.app"
-               BlueprintName = "example-video_audio"
-               ReferencedContainer = "container:example-video_audio.xcodeproj">
+               BuildableName = "example-osc_over_rtp.app"
+               BlueprintName = "example-osc_over_rtp"
+               ReferencedContainer = "container:example-osc_over_rtp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "example-all.app"
-            BlueprintName = "example-video_audio"
-            ReferencedContainer = "container:example-video_audio.xcodeproj">
+            BuildableName = "example-osc_over_rtp.app"
+            BlueprintName = "example-osc_over_rtp"
+            ReferencedContainer = "container:example-osc_over_rtp.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -52,9 +52,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "example-all.app"
-            BlueprintName = "example-video_audio"
-            ReferencedContainer = "container:example-video_audio.xcodeproj">
+            BuildableName = "example-osc_over_rtp.app"
+            BlueprintName = "example-osc_over_rtp"
+            ReferencedContainer = "container:example-osc_over_rtp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <AdditionalOptions>
@@ -70,9 +70,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "example-all.app"
-            BlueprintName = "example-video_audio"
-            ReferencedContainer = "container:example-video_audio.xcodeproj">
+            BuildableName = "example-osc_over_rtp.app"
+            BlueprintName = "example-osc_over_rtp"
+            ReferencedContainer = "container:example-osc_over_rtp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
