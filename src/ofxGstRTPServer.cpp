@@ -970,29 +970,29 @@ GstFlowReturn ofxGstRTPServer::on_new_preroll_from_audio(GstAppSink * elt, void 
 }
 
 void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
 
 	if(firstAudioFrame){
+		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+		gst_object_ref(clock);
+		GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+		gst_object_unref (clock);
 		prevTimestampAudio = now;
 		firstAudioFrame = false;
 		return;
 	}
 
-	//cout << "server sending " << frame._payloadDataLengthInSamples << " samples at " << (int)(now*0.000001) << "ms" << endl;
 	int size = pooledFrame->audioFrame._payloadDataLengthInSamples*2*pooledFrame->audioFrame._audioChannel;
-	/*GstBuffer * echoCancelledBuffer = gst_buffer_new_allocate(NULL,size,NULL);
-	gst_buffer_fill(echoCancelledBuffer,0,frame._payloadData,size);*/
 
 	GstBuffer * echoCancelledBuffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledFrame->audioFrame._payloadData,size,0,size,pooledFrame,(GDestroyNotify)&ofxWebRTCAudioPool::relaseFrame);
+
+	GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
+	GstClockTime now = prevTimestamp + duration;
 
 	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
 	GST_BUFFER_DTS (echoCancelledBuffer) = now;
 	GST_BUFFER_PTS (echoCancelledBuffer) = now;
-	GST_BUFFER_DURATION(echoCancelledBuffer) = now-prevTimestampAudio;
+	GST_BUFFER_DURATION(echoCancelledBuffer) = duration;
 	prevTimestampAudio = now;
 
 
