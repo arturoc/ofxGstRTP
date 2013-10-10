@@ -205,7 +205,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 #if ENABLE_ECHO_CANCEL
 		if(echoCancel){
 			parameters.add(reverseDriftCalculation);
-			aelem = "appsrc is-live=1 format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
+			aelem = "appsrc is-live=1 do-timestamp=1 format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
 		}else
 #endif
 		{
@@ -972,13 +972,13 @@ GstFlowReturn ofxGstRTPServer::on_new_preroll_from_audio(GstAppSink * elt, void 
 
 void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
 	if(firstAudioFrame){
-		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+		/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 		gst_object_ref(clock);
 		GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 		gst_object_unref (clock);
 		prevTimestampAudio = now;
 		firstAudioFrame = false;
-		return;
+		return;*/
 	}
 
 	int size = pooledFrame->audioFrame._payloadDataLengthInSamples*2*pooledFrame->audioFrame._audioChannel;
@@ -988,12 +988,12 @@ void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
 	GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
 	GstClockTime now = prevTimestamp + duration;
 
-	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
+	/*GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
 	GST_BUFFER_DTS (echoCancelledBuffer) = now;
 	GST_BUFFER_PTS (echoCancelledBuffer) = now;
 	GST_BUFFER_DURATION(echoCancelledBuffer) = duration;
-	prevTimestampAudio = now;
+	prevTimestampAudio = now;*/
 
 
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcAudio, echoCancelledBuffer);
