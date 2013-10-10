@@ -264,7 +264,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 	// depth elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string delem="appsrc is-live=1 format=time name=appsrcdepth";
+		string delem="appsrc is-live=1 do-timestamp=1 format=time name=appsrcdepth";
 
 		// video format that we are pushing to the pipeline
 		string dcaps;
@@ -320,7 +320,7 @@ void ofxGstRTPServer::addOscChannel(int port){
 	// osc elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string oelem="appsrc is-live=1 format=time name=appsrcosc ! application/x-osc ";
+		string oelem="appsrc is-live=1 format=time do-timestamp=1 name=appsrcosc ! application/x-osc ";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
 		string osource = oelem;
@@ -742,13 +742,13 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	if(!bufferPool || !appSrcVideoRGB) return;
 
 	// get current time from the pipeline
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime time = gst_clock_get_time (clock);
 	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
-	/*if(firstVideoFrame){
+	if(firstVideoFrame){
 		prevTimestamp = now;
 		firstVideoFrame = false;
 		return;
@@ -777,6 +777,11 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 
 
 	if(sendVideoKeyFrame){
+		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+		gst_object_ref(clock);
+		GstClockTime time = gst_clock_get_time (clock);
+		GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
+		gst_object_unref (clock);
 		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
 																 time,
 																 now,
@@ -801,7 +806,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
 	// get current time from the pipeline
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime time = gst_clock_get_time (clock);
 	GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
@@ -811,7 +816,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 		prevTimestampDepth = now;
 		firstDepthFrame = false;
 		return;
-	}
+	}*/
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
@@ -828,14 +833,19 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
+	/*GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
 	GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
 	GST_BUFFER_DTS (buffer) = now;
 	GST_BUFFER_PTS (buffer) = now;
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
-	prevTimestampDepth = now;
+	prevTimestampDepth = now;*/
 
 	if(sendDepthKeyFrame){
+		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+		gst_object_ref(clock);
+		GstClockTime time = gst_clock_get_time (clock);
+		GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
+		gst_object_unref (clock);
 		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
 																 time,
 																 now,
@@ -862,7 +872,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
 	// get current time from the pipeline
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
@@ -871,7 +881,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 		prevTimestampDepth = now;
 		firstDepthFrame = false;
 		return;
-	}
+	}*/
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
@@ -887,12 +897,26 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
+	/*GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
 	GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
 	GST_BUFFER_DTS (buffer) = now;
 	GST_BUFFER_PTS (buffer) = now;
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
-	prevTimestampDepth = now;
+	prevTimestampDepth = now;*/
+
+	if(sendDepthKeyFrame){
+		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+		gst_object_ref(clock);
+		GstClockTime time = gst_clock_get_time (clock);
+		GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
+		gst_object_unref (clock);
+		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
+																 time,
+																 now,
+																 TRUE,
+																 0);
+		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
+	}
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcDepth, buffer);
@@ -908,7 +932,7 @@ void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
 	if(!appSrcOsc) return;
 
 	// get current time from the pipeline
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
@@ -917,19 +941,19 @@ void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
 		prevTimestampOsc = now;
 		firstOscFrame = false;
 		return;
-	}
+	}*/
 
 	PooledOscPacket * pooledOscPkg = oscPacketPool.newBuffer();
 	appendMessage(msg,pooledOscPkg->packet);
 
 	GstBuffer * buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledOscPkg->compressedData(),pooledOscPkg->compressedSize(),0,pooledOscPkg->compressedSize(),pooledOscPkg,(GDestroyNotify)&ofxOscPacketPool::relaseBuffer);
 
-	GST_BUFFER_OFFSET(buffer) = numFrameOsc++;
+	/*GST_BUFFER_OFFSET(buffer) = numFrameOsc++;
 	GST_BUFFER_OFFSET_END(buffer) = numFrameOsc;
 	GST_BUFFER_DTS (buffer) = now;
 	GST_BUFFER_PTS (buffer) = now;
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampOsc;
-	prevTimestampOsc = now;
+	prevTimestampOsc = now;*/
 
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcOsc, buffer);
 	if (flow_return != GST_FLOW_OK) {
