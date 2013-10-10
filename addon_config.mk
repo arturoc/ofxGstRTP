@@ -33,7 +33,7 @@ common:
 	
 	# any special flag that should be passed to the compiler when using this
 	# addon
-	ADDON_CFLAGS = -DWEBRTC_NS_FLOAT -DNDEBUG 
+	ADDON_CFLAGS = 
 	
 	# any special flag that should be passed to the linker when using this
 	# addon, also used for system libraries with -lname
@@ -62,41 +62,33 @@ common:
 	
 	# when parsing the file system looking for sources exclude this for all or
 	# a specific platform
-	ADDON_SOURCES_EXCLUDE = libs/webrtc-audio-processing/src/modules/audio_processing/test/% 
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/common_audio/vad/main/test/%
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/common_audio/signal_processing_library/main/test/%
 	
 	# when parsing the file system looking for include paths exclude this for all or
 	# a specific platform
     # ADDON_INCLUDES_EXCLUDE =
 
 linux:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	
 linux64:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	
 linuxarmv6l:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	
 linuxarmv7l:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	
 win_cb:
 	
 vs:
 	
 android/armeabi:	
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	
 android/armeabi-v7a:	
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 
 osx:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	ADDON_CFLAGS += -F/Library/Frameworks
+	ADDON_INCLUDES = /Library/Frameworks/GStreamer.framework/Headers
     
 ios:
-	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
 	ADDON_CFLAGS += -F/Library/Frameworks
+	
+	
 
