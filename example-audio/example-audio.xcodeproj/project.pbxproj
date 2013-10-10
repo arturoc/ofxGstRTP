@@ -9,28 +9,6 @@
 		<string>46</string>
 		<key>objects</key>
 		<dict>
-			<key>42F3D218AFE247666F87BD19</key>
-			<dict>
-				<key>fileRef</key>
-				<string>7330B322C7B281DEABDD0C66</string>
-				<key>isa</key>
-				<string>PBXBuildFile</string>
-			</dict>
-			<key>7330B322C7B281DEABDD0C66</key>
-			<dict>
-				<key>lastKnownFileType</key>
-				<string>wrapper.framework</string>
-				<key>fileEncoding</key>
-				<string>30</string>
-				<key>isa</key>
-				<string>PBXFileReference</string>
-				<key>name</key>
-				<string>GStreamer.framework</string>
-				<key>path</key>
-				<string>GStreamer.framework</string>
-				<key>sourceTree</key>
-				<string>&lt;group&gt;</string>
-			</dict>
 			<key>9D99424B122DE3C1D83A3670</key>
 			<dict>
 				<key>fileRef</key>
@@ -5712,7 +5690,6 @@
 					<string>E45BE97A0E8CC7DD009D7055</string>
 					<string>E7E077E415D3B63C0020DFD4</string>
 					<string>E7E077E715D3B6510020DFD4</string>
-					<string>7330B322C7B281DEABDD0C66</string>
 				</array>
 				<key>isa</key>
 				<string>PBXGroup</string>
@@ -6090,6 +6067,8 @@
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/nice.a</string>
 						<string>-lresolv</string>
 						<string>-F/Library/Frameworks</string>
+						<string>-framework</string>
+						<string>GStreamer</string>
 					</array>
 					<key>HEADER_SEARCH_PATHS</key>
 					<array>
@@ -6228,6 +6207,8 @@
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/nice.a</string>
 						<string>-lresolv</string>
 						<string>-F/Library/Frameworks</string>
+						<string>-framework</string>
+						<string>GStreamer</string>
 					</array>
 					<key>HEADER_SEARCH_PATHS</key>
 					<array>
