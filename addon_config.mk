@@ -33,7 +33,7 @@ common:
 	
 	# any special flag that should be passed to the compiler when using this
 	# addon
-	ADDON_CFLAGS = -DWEBRTC_NS_FLOAT -DNDEBUG
+	ADDON_CFLAGS = -DWEBRTC_NS_FLOAT -DNDEBUG 
 	
 	# any special flag that should be passed to the linker when using this
 	# addon, also used for system libraries with -lname
@@ -44,7 +44,7 @@ common:
 	#ADDON_PKG_CONFIG_LIBRARIES = 
 	
 	# osx/iOS only, any framework that should be included in the project
-	# ADDON_FRAMEWORKS =
+	ADDON_FRAMEWORKS = GStreamer
 	
 	# source files, these will be usually parsed from the file system looking
 	# in the src folders in libs and the root of the addon. if your addon needs
@@ -94,7 +94,9 @@ android/armeabi-v7a:
 
 osx:
 	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
+	ADDON_CFLAGS += -F/Library/Frameworks
     
 ios:
 	ADDON_SOURCES_EXCLUDE += libs/webrtc-audio-processing/src/system_wrappers/source/critical_section_windows.cc
+	ADDON_CFLAGS += -F/Library/Frameworks
 
