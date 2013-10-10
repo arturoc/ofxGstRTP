@@ -158,6 +158,7 @@ private:
 	GstElement * appSinkAudio;
 	GstElement * appSrcAudio;
 	GstElement * audiocapture;
+	GstElement * volume;
 
 	static void on_eos_from_audio(GstAppSink * elt, void * rtpClient);
 	static GstFlowReturn on_new_preroll_from_audio(GstAppSink * elt, void * rtpClient);

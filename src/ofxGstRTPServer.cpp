@@ -538,11 +538,12 @@ void ofxGstRTPServer::play(){
 
 		#ifdef TARGET_LINUX
 			gstAudioIn.setPipelineWithSink("pulsesrc stream-properties=\"props,media.role=phone\" name=audiocapture ! audio/x-raw,format=S16LE,rate=44100,channels=1 ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
-
+			volume = gstAudioIn.getGstElementByName("audiocapture");
 		#elif defined(TARGET_OSX)
 			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
 			// FIXME: we should detect the format somehow and set it automatically
-			gstAudioIn.setPipelineWithSink("osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
+			gstAudioIn.setPipelineWithSink("osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ! volume name=volume ! audioresample ! audioconvert ! audio/x-raw,format=S16LE,rate=32000,channels=1 ! appsink name=audioechosink");
+			volume = gstAudioIn.getGstElementByName("volume");
 		#endif
 
 		appSinkAudio = gstAudioIn.getGstElementByName("audioechosink");
@@ -970,7 +971,6 @@ GstFlowReturn ofxGstRTPServer::on_new_preroll_from_audio(GstAppSink * elt, void 
 }
 
 void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
-
 	if(firstAudioFrame){
 		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 		gst_object_ref(clock);
@@ -1009,16 +1009,7 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 		GstSample * sample = gst_app_sink_pull_sample(elt);
 		GstBuffer * buffer = gst_sample_get_buffer(sample);
 
-
-		/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(server->gstAudioIn.getPipeline()));
-		gst_object_ref(clock);
-		GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(server->gstAudioIn.getPipeline());
-		gst_object_unref (clock);
-		u_int64_t t_capture = GST_BUFFER_TIMESTAMP(buffer)*0.000001;
-		u_int64_t t_process = now*0.000001;
-		int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
 		int delay = server->gstAudioIn.getMinLatencyNanos()*0.000001 + server->client->getAudioOutLatencyMs();
-		//delay = 500;
 
 		const int numChannels = 1;
 		const int samplerate = 32000;
@@ -1030,7 +1021,7 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			gst_buffer_map (server->prevAudioBuffer, &server->mapinfo, GST_MAP_READ);
 			int prevBuffersize = gst_buffer_get_size(server->prevAudioBuffer)/2/numChannels;
 			memcpy(audioFrame->audioFrame._payloadData,((short*)server->mapinfo.data)+(posInBuffer*numChannels),(prevBuffersize-posInBuffer)*numChannels*sizeof(short));
-			//cout << "copying " << prevBuffersize-posInBuffer;
+
 			gst_buffer_unmap(server->prevAudioBuffer,&server->mapinfo);
 			gst_buffer_unref(server->prevAudioBuffer);
 
@@ -1040,17 +1031,6 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			audioFrame->audioFrame._payloadDataLengthInSamples = samplesIn10Ms;
 			audioFrame->audioFrame._audioChannel = numChannels;
 			audioFrame->audioFrame._frequencyInHz = samplerate;
-			//cout << " + " << samplesIn10Ms-(prevBuffersize-posInBuffer) << endl;
-
-			//server->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
-
-			/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(server->gstAudioIn.getPipeline()));
-			gst_object_ref(clock);
-			GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(server->gstAudioIn.getPipeline());
-			gst_object_unref (clock);
-			u_int64_t t_capture = GST_BUFFER_TIMESTAMP(buffer)*0.000001;
-			u_int64_t t_process = now*0.000001;
-			int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
 
 			if(server->echoCancel->echoCancelEnabled){
 				server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
@@ -1068,9 +1048,9 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			}
 			if(server->echoCancel->gainControlEnabled){
 				server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
-				g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+				g_object_set(server->volume,"volume",server->analogAudio/double(0x10000U),NULL);
 			}
-			//cout << server->analogAudio/double(0x10000U) << endl;
+
 			server->sendAudioOut(audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
 			server->audioFramesProcessed += samplesIn10Ms;
@@ -1083,14 +1063,6 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			PooledAudioFrame * audioFrame = server->audioPool.newFrame();
 			audioFrame->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)server->mapinfo.data)  + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
 
-			/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(server->gstAudioIn.getPipeline()));
-			gst_object_ref(clock);
-			GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(server->gstAudioIn.getPipeline());
-			gst_object_unref (clock);
-			u_int64_t t_capture = GST_BUFFER_TIMESTAMP(buffer)*0.000001;
-			u_int64_t t_process = now*0.000001;
-			int delay = (t_process - t_capture) + server->client->getAudioOutLatencyMs();*/
-
 			if(server->echoCancel->echoCancelEnabled){
 				server->echoCancel->getAudioProcessing()->set_stream_delay_ms(delay);
 			}
@@ -1101,33 +1073,27 @@ GstFlowReturn ofxGstRTPServer::on_new_buffer_from_audio(GstAppSink * elt, void *
 			if(server->echoCancel->gainControlEnabled){
 				server->echoCancel->getAudioProcessing()->gain_control()->set_stream_analog_level(server->analogAudio);
 			}
-			//cout << "process stream returned ";
+
 			server->echoCancel->process(audioFrame->audioFrame);// << endl;
 			if(server->echoCancel->voiceDetectionEnabled && !server->echoCancel->getAudioProcessing()->voice_detection()->stream_has_voice()){
 				memset(audioFrame->audioFrame._payloadData,0,samplesIn10Ms*numChannels*sizeof(short));
 			}
 			if(server->echoCancel->gainControlEnabled){
 				server->analogAudio = server->echoCancel->getAudioProcessing()->gain_control()->stream_analog_level();
-				g_object_set(server->audiocapture,"volume",server->analogAudio/double(0x10000U),NULL);
+				g_object_set(server->volume,"volume",server->analogAudio/double(0x10000U),NULL);
 			}
-			//cout << server->analogAudio/double(0x10000U) << endl;
+
 			server->sendAudioOut(audioFrame);
 			posInBuffer+=samplesIn10Ms;
 			server->audioFramesProcessed += samplesIn10Ms;
 		};
 
 		if(posInBuffer<buffersize){
-			//cout << "server remaining samples: " << buffersize - posInBuffer << endl;
 			server->prevAudioBuffer = buffer;
 			gst_buffer_ref(server->prevAudioBuffer);
 		}else{
 			server->prevAudioBuffer = 0;
 		}
-
-		/*if(server->audioProcessing->echo_cancellation()->stream_has_echo()){
-			cout << "echo? " << server->audioProcessing->echo_cancellation()->stream_has_echo() << " with (" << server->gstAudioIn.getMinLatencyNanos() << ") +" << server->client->getAudioOutLatencyMs() << " = " << delay << endl;
-			cout << "audioin latency " << server->gstAudioIn.getMinLatencyNanos() << endl;
-		}*/
 
 		gst_buffer_unmap(buffer,&server->mapinfo);
 		gst_sample_unref(sample);
