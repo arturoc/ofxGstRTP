@@ -114,7 +114,7 @@ ofxGstRTPClient::ofxGstRTPClient()
 
 	latency.set("latency",0,0,2000);
 	latency.addListener(this,&ofxGstRTPClient::latencyChanged);
-	drop.set("drop",true);
+	drop.set("drop",false);
 	drop.addListener(this,&ofxGstRTPClient::dropChanged);
 	parameters.setName("gst rtp client");
 	parameters.add(latency);
@@ -924,7 +924,7 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 
 	rtpbin	 = gst_element_factory_make("rtpbin","rtpbin");
 	g_object_set(rtpbin,"latency",latency,NULL);
-	g_object_set(rtpbin,"drop-on-latency",TRUE,NULL);
+	g_object_set(rtpbin,"drop-on-latency",(bool)drop,NULL);
 	g_object_set(rtpbin,"do-lost",TRUE,NULL);
 
 	if(!gst_bin_add(GST_BIN(pipeline),rtpbin)){

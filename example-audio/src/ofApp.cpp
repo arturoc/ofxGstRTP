@@ -12,7 +12,8 @@ void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
 
 
-	rtp.setup(200);
+	rtp.setup(500);
+	//rtp.getClient().drop = false;
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendAudioChannel();

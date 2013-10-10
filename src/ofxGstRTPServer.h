@@ -26,7 +26,6 @@
 
 
 #if ENABLE_ECHO_CANCEL
-	#include "audio_processing.h"
 	#include "ofxWebRTCAudioPool.h"
 	#include "ofxEchoCancel.h"
 #endif

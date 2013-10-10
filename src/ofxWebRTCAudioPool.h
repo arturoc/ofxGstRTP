@@ -8,7 +8,7 @@
 #ifndef OFXWEBRTCAUDIOPOOL_H_
 #define OFXWEBRTCAUDIOPOOL_H_
 
-#include "module_common_types.h"
+#include "ofxEchoCancel.h"
 #include "ofConstants.h"
 #include <list>
 #include "ofTypes.h"
