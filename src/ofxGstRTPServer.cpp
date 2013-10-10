@@ -153,7 +153,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 	// video elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string velem="appsrc is-live=1 format=time name=appsrcvideo";
+		string velem="appsrc is-live=1 do-timestamp=1 format=time name=appsrcvideo";
 
 		// video format that we are pushing to the pipeline
 		string vcaps="video/x-raw,format=RGB,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
@@ -748,11 +748,11 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
-	if(firstVideoFrame){
+	/*if(firstVideoFrame){
 		prevTimestamp = now;
 		firstVideoFrame = false;
 		return;
-	}
+	}*/
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPool->newBuffer();
@@ -768,12 +768,12 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	GST_BUFFER_OFFSET(buffer) = numFrame++;
+	/*GST_BUFFER_OFFSET(buffer) = numFrame++;
 	GST_BUFFER_OFFSET_END(buffer) = numFrame;
 	GST_BUFFER_DTS (buffer) = now;
 	GST_BUFFER_PTS (buffer) = now;
 	GST_BUFFER_DURATION(buffer) = now-prevTimestamp;
-	prevTimestamp = now;
+	prevTimestamp = now;*/
 
 
 	if(sendVideoKeyFrame){
