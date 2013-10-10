@@ -9,6 +9,139 @@
 		<string>46</string>
 		<key>objects</key>
 		<dict>
+			<key>42F3D218AFE247666F87BD19</key>
+			<dict>
+				<key>fileRef</key>
+				<string>7330B322C7B281DEABDD0C66</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>7330B322C7B281DEABDD0C66</key>
+			<dict>
+				<key>lastKnownFileType</key>
+				<string>wrapper.framework</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>GStreamer.framework</string>
+				<key>path</key>
+				<string>GStreamer.framework</string>
+				<key>sourceTree</key>
+				<string>&lt;group&gt;</string>
+			</dict>
+			<key>9D99424B122DE3C1D83A3670</key>
+			<dict>
+				<key>fileRef</key>
+				<string>F198996ED5C849097CC1ABB5</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>F198996ED5C849097CC1ABB5</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.cpp.cpp</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstVideoGrabber.cpp</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstVideoGrabber.cpp</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>A4EDC690C8B308A3017A449A</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.c.h</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstVideoGrabber.h</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstVideoGrabber.h</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>EA6B03BE577F2E744640A557</key>
+			<dict>
+				<key>fileRef</key>
+				<string>161677514B5A7F41CC4D5133</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>161677514B5A7F41CC4D5133</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.cpp.cpp</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstVideoPlayer.cpp</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstVideoPlayer.cpp</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>20FA58E59B905300D2D16967</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.c.h</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstVideoPlayer.h</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstVideoPlayer.h</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>EFF44E8E264F0AD343D1E018</key>
+			<dict>
+				<key>fileRef</key>
+				<string>4EF80366647ACFEB44E48FA6</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>4EF80366647ACFEB44E48FA6</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.cpp.cpp</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstUtils.cpp</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstUtils.cpp</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>2D2A7C6ED0FCEB7A64EBA490</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.c.h</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>ofGstUtils.h</string>
+				<key>path</key>
+				<string>../../../libs/openFrameworks/video/ofGstUtils.h</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
 			<key>31FE6628E2F92513E251C974</key>
 			<dict>
 				<key>explicitFileType</key>
@@ -5579,6 +5712,7 @@
 					<string>E45BE97A0E8CC7DD009D7055</string>
 					<string>E7E077E415D3B63C0020DFD4</string>
 					<string>E7E077E715D3B6510020DFD4</string>
+					<string>7330B322C7B281DEABDD0C66</string>
 				</array>
 				<key>isa</key>
 				<string>PBXGroup</string>
@@ -5986,8 +6120,6 @@
 						<string>../../../addons/ofxGstRTP/src</string>
 						<string>../../../addons/ofxGui/libs</string>
 						<string>../../../addons/ofxGui/src</string>
-						<string>../../../addons/# this addon is needed if echo cancel is enabled in ofGstRTPConstants.h /libs</string>
-						<string>../../../addons/# this addon is needed if echo cancel is enabled in ofGstRTPConstants.h /src</string>
 						<string>../../../addons/ofxEchoCancel/libs</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src</string>
@@ -6023,6 +6155,7 @@
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src/system_wrappers/interface</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src/system_wrappers/source</string>
 						<string>../../../addons/ofxEchoCancel/src</string>
+						<string>/Library/Frameworks/GStreamer.framework/Headers</string>
 						<string>src</string>
 					</array>
 					<key>ARCHS</key>
@@ -6066,6 +6199,7 @@
 						<string>-mtune=native</string>
 						<string>-DWEBRTC_NS_FLOAT</string>
 						<string>-DNDEBUG</string>
+						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>SDKROOT</key>
 					<string>macosx</string>
@@ -6124,8 +6258,6 @@
 						<string>../../../addons/ofxGstRTP/src</string>
 						<string>../../../addons/ofxGui/libs</string>
 						<string>../../../addons/ofxGui/src</string>
-						<string>../../../addons/# this addon is needed if echo cancel is enabled in ofGstRTPConstants.h /libs</string>
-						<string>../../../addons/# this addon is needed if echo cancel is enabled in ofGstRTPConstants.h /src</string>
 						<string>../../../addons/ofxEchoCancel/libs</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src</string>
@@ -6161,6 +6293,7 @@
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src/system_wrappers/interface</string>
 						<string>../../../addons/ofxEchoCancel/libs/webrtc-audio-processing/src/system_wrappers/source</string>
 						<string>../../../addons/ofxEchoCancel/src</string>
+						<string>/Library/Frameworks/GStreamer.framework/Headers</string>
 						<string>src</string>
 					</array>
 					<key>ARCHS</key>
@@ -6206,6 +6339,7 @@
 						<string>-mtune=native</string>
 						<string>-DWEBRTC_NS_FLOAT</string>
 						<string>-DNDEBUG</string>
+						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>SDKROOT</key>
 					<string>macosx</string>
@@ -6340,6 +6474,9 @@
 					<string>41B7D230F859F42C24D38926</string>
 					<string>5020E7D2B4DF77E828D776C7</string>
 					<string>0F7B40F4D6D0E42451C182DF</string>
+					<string>EFF44E8E264F0AD343D1E018</string>
+					<string>EA6B03BE577F2E744640A557</string>
+					<string>9D99424B122DE3C1D83A3670</string>
 				</array>
 				<key>isa</key>
 				<string>PBXSourcesBuildPhase</string>
