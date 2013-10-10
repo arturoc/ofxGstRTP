@@ -6089,6 +6089,7 @@
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/stun.a</string>
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/nice.a</string>
 						<string>-lresolv</string>
+						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>HEADER_SEARCH_PATHS</key>
 					<array>
@@ -6199,7 +6200,6 @@
 						<string>-mtune=native</string>
 						<string>-DWEBRTC_NS_FLOAT</string>
 						<string>-DNDEBUG</string>
-						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>SDKROOT</key>
 					<string>macosx</string>
@@ -6227,6 +6227,7 @@
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/stun.a</string>
 						<string>../../../addons/ofxNice/libs/libnice/lib/osx/nice.a</string>
 						<string>-lresolv</string>
+						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>HEADER_SEARCH_PATHS</key>
 					<array>
@@ -6339,7 +6340,6 @@
 						<string>-mtune=native</string>
 						<string>-DWEBRTC_NS_FLOAT</string>
 						<string>-DNDEBUG</string>
-						<string>-F/Library/Frameworks</string>
 					</array>
 					<key>SDKROOT</key>
 					<string>macosx</string>
