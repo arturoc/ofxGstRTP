@@ -107,7 +107,7 @@ void ofxGstXMPPRTP::acceptCall(){
 			}
 			videoStream->setup(nice,3);
 			nice.addStream(videoStream);
-			client.addVideoChannel(videoStream,640,480,30);
+			client.addVideoChannel(videoStream);
 		}else if(remoteJingle.contents[i].media=="depth"){
 			ofLogNotice() << "adding depth channel to client";
 			if(!depthStream){
@@ -116,7 +116,7 @@ void ofxGstXMPPRTP::acceptCall(){
 			}
 			depthStream->setup(nice,3);
 			nice.addStream(depthStream);
-			client.addDepthChannel(depthStream,640,480,30);
+			client.addDepthChannel(depthStream);
 		}else if(remoteJingle.contents[i].media=="audio"){
 			ofLogNotice() << "adding audio channel to client";
 			if(!audioStream){
@@ -299,7 +299,7 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	if(videoStream){
 		videoStream->setup(nice,3);
 		nice.addStream(videoStream);
-		client.addVideoChannel(videoStream,640,480,30);
+		client.addVideoChannel(videoStream);
 	}
 	if(audioStream){
 		audioStream->setup(nice,3);
@@ -309,7 +309,7 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	if(depthStream){
 		depthStream->setup(nice,3);
 		nice.addStream(depthStream);
-		client.addDepthChannel(depthStream,640,480,30);
+		client.addDepthChannel(depthStream);
 	}
 	if(oscStream){
 		oscStream->setup(nice,3);

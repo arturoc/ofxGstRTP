@@ -44,8 +44,8 @@ public:
 	/// to an specific IP and port
 	void setup(string srcIP, int latency);
 	void addAudioChannel(int port);
-	void addVideoChannel(int port, int w, int h, int fps);
-	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false);
+	void addVideoChannel(int port);
+	void addDepthChannel(int port, bool depth16=false);
 	void addOscChannel(int port);
 
 #if ENABLE_NAT_TRANSVERSAL
@@ -53,8 +53,8 @@ public:
 	/// usually this will be done from ofxGstXMPPRTP
 	void setup(int latency);
 	void addAudioChannel(ofxNiceStream * niceStream);
-	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps);
-	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false);
+	void addVideoChannel(ofxNiceStream * niceStream);
+	void addDepthChannel(ofxNiceStream * niceStream, bool depth16=false);
 	void addOscChannel(ofxNiceStream * niceStream);
 #endif
 
@@ -108,8 +108,8 @@ private:
 #endif
 
 	void createAudioChannel(string rtpCaps);
-	void createVideoChannel(string rtpCaps, int w, int h, int fps);
-	void createDepthChannel(string rtpCaps, int w, int h, int fps, bool depth16=false);
+	void createVideoChannel(string rtpCaps);
+	void createDepthChannel(string rtpCaps, bool depth16=false);
 	void createOscChannel(string rtpCaps);
 
 	// calbacks from gstUtils

@@ -20,6 +20,7 @@ public:
 	virtual ~ofxGstVideoDoubleBuffer();
 
 	void setup(int width, int height, int numChannels);
+	bool isAllocated();
 
 	bool isFrameNew();
 	void newSample(GstSample * sample);
@@ -32,6 +33,7 @@ private:
 	ofMutex mutex;
 	GstMapInfo mapinfo;
 	bool bIsNewFrame;
+	bool allocated;
 };
 
 
@@ -43,6 +45,7 @@ ofxGstVideoDoubleBuffer<PixelType>::ofxGstVideoDoubleBuffer()
 ,backSample(NULL)
 ,mapinfo()
 ,bIsNewFrame(false)
+,allocated(false)
 {
 	GstMapInfo mapinfo = {0,};
 	this->mapinfo=mapinfo;
@@ -58,8 +61,13 @@ ofxGstVideoDoubleBuffer<PixelType>::~ofxGstVideoDoubleBuffer() {
 template<typename PixelType>
 void ofxGstVideoDoubleBuffer<PixelType>::setup(int width, int height, int numChannels){
 	pixels.allocate(width,height,numChannels);
+	allocated = true;
 }
 
+template<typename PixelType>
+bool ofxGstVideoDoubleBuffer<PixelType>::isAllocated(){
+	return allocated;
+}
 
 template<typename PixelType>
 bool ofxGstVideoDoubleBuffer<PixelType>::isFrameNew(){

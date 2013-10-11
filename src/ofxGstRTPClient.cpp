@@ -414,7 +414,7 @@ void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties
 }
 
 
-void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
+void ofxGstRTPClient::createVideoChannel(string rtpCaps){
 	videoSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
@@ -441,8 +441,8 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	GstCaps * caps = NULL;
 	caps = gst_caps_new_simple("video/x-raw",
 					"format",G_TYPE_STRING,"RGB",
-					"width", G_TYPE_INT,w,
-					"height", G_TYPE_INT,h,
+					/*"width", G_TYPE_INT,w,
+					"height", G_TYPE_INT,h,*/
 					NULL);
 
 	if(!caps){
@@ -465,6 +465,8 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps, int w, int h, int fps){
 	if(!gst_element_link_many(vh264depay, avdec_h264, vconvert, videoSink, NULL)){
 		ofLogError(LOG_NAME) << "couldn't link video elements";
 	}
+
+	//doubleBufferVideo.setup(w,h,3);
 }
 
 void ofxGstRTPClient::createAudioChannel(string rtpCaps){
@@ -562,7 +564,7 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 
 }
 
-void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, bool depth16){
+void ofxGstRTPClient::createDepthChannel(string rtpCaps, bool depth16){
 	depthSessionNumber = lastSessionNumber;
 	lastSessionNumber++;
 
@@ -588,14 +590,14 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, int w, int h, int fps, 
 	if(depth16){
 		caps = gst_caps_new_simple("video/x-raw",
 				"format",G_TYPE_STRING,"RGB",
-				"width", G_TYPE_INT,w,
-				"height", G_TYPE_INT,h,
+				/*"width", G_TYPE_INT,w,
+				"height", G_TYPE_INT,h,*/
 				NULL);
 	}else{
 		caps = gst_caps_new_simple("video/x-raw",
 				"format",G_TYPE_STRING,"GRAY8",
-				"width", G_TYPE_INT,w,
-				"height", G_TYPE_INT,h,
+				/*"width", G_TYPE_INT,w,
+				"height", G_TYPE_INT,h,*/
 				NULL);
 	}
 	if(!caps){
@@ -662,7 +664,7 @@ void ofxGstRTPClient::createOscChannel(string rtpCaps){
 	}
 }
 
-void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
+void ofxGstRTPClient::addVideoChannel(int port){
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
@@ -670,7 +672,7 @@ void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
 	// have that yet
 	string vcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264";
 
-	createVideoChannel(vcaps, w,h,fps);
+	createVideoChannel(vcaps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -690,7 +692,7 @@ void ofxGstRTPClient::addVideoChannel(int port, int w, int h, int fps){
 
 }
 
-void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool depth16){
+void ofxGstRTPClient::addDepthChannel(int port, bool depth16){
 
 	// the caps of the sender RTP stream.
 	// FIXME: This is usually negotiated out of band with
@@ -698,7 +700,7 @@ void ofxGstRTPClient::addDepthChannel(int port, int w, int h, int fps, bool dept
 	// have that yet
 	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264";
 
-	createDepthChannel(dcaps, w,h,fps,depth16);
+	createDepthChannel(dcaps,depth16);
 
 
 	GstElement * rtcpsink;
@@ -776,7 +778,7 @@ void ofxGstRTPClient::addOscChannel(int port){
 }
 
 #if ENABLE_NAT_TRANSVERSAL
-void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps){
+void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream){
 	videoStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -785,7 +787,7 @@ void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream, int w, int h, 
 	// have that yet
 	string vcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264";
 
-	createVideoChannel(vcaps, w,h,fps);
+	createVideoChannel(vcaps);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -835,7 +837,7 @@ void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
 	linkAudioPad(pad);*/
 }
 
-void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16){
+void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, bool depth16){
 	depthStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -844,7 +846,7 @@ void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, int w, int h, 
 	// have that yet
 	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)H264";
 
-	createDepthChannel(dcaps,w,h,fps,depth16);
+	createDepthChannel(dcaps,depth16);
 
 	GstElement * rtcpsink;
 	NetworkElementsProperties properties;
@@ -929,14 +931,6 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 
 	if(!gst_bin_add(GST_BIN(pipeline),rtpbin)){
 		ofLogError() << "couldn't add rtpbin to pipeline";
-	}
-
-	doubleBufferVideo.setup(640,480,3);
-	if(depth16){
-		doubleBufferDepth.setup(640,480,3);
-		depth16Pixels.allocate(640,480,1);
-	}else{
-		doubleBufferDepth.setup(640,480,1);
 	}
 }
 
@@ -1229,6 +1223,12 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_video(GstAppSink * elt, void *
 
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_video(GstAppSink * elt){
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
+	if(!doubleBufferVideo.isAllocated()){
+		GstCaps * sampleCaps = gst_sample_get_caps(sample);
+		GstVideoInfo sampleInfo;
+		gst_video_info_from_caps(&sampleInfo,sampleCaps);
+		doubleBufferVideo.setup( sampleInfo.width , sampleInfo.height , 3);
+	}
 	doubleBufferVideo.newSample(sample);
 	return GST_FLOW_OK;
 }
@@ -1251,6 +1251,19 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt, void *
 
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt){
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
+
+	if(!doubleBufferDepth.isAllocated()){
+		GstCaps * sampleCaps = gst_sample_get_caps(sample);
+		GstVideoInfo sampleInfo;
+		gst_video_info_from_caps(&sampleInfo,sampleCaps);
+		if(depth16){
+			doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,3);
+			depth16Pixels.allocate(sampleInfo.width , sampleInfo.height,1);
+		}else{
+			doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,1);
+		}
+	}
+
 	doubleBufferDepth.newSample(sample);
 	return GST_FLOW_OK;
 }
@@ -1344,12 +1357,10 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 			gst_buffer_map (buffer, &client->mapinfo, GST_MAP_READ);
 			memcpy(audioFrame->audioFrame._payloadData+((prevBuffersize-posInBuffer)*numChannels),((short*)client->mapinfo.data),(samplesIn10Ms-(prevBuffersize-posInBuffer))*numChannels*sizeof(short));
 
-			//client->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),auxBuffer,samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
-			//client->audioFrame._payloadData = auxBuffer;
 			audioFrame->audioFrame._payloadDataLengthInSamples = samplesIn10Ms;
 			audioFrame->audioFrame._audioChannel = numChannels;
 			audioFrame->audioFrame._frequencyInHz = samplerate;
-			//cout << "analyze reverse returned " <<
+
 			client->echoCancel->analyzeReverse(audioFrame->audioFrame);// << endl;
 			client->sendAudioOut(audioFrame);
 			posInBuffer = samplesIn10Ms-(prevBuffersize-posInBuffer);
@@ -1362,7 +1373,7 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_audio(GstAppSink * elt, void *
 		while(posInBuffer+samplesIn10Ms<=buffersize){
 			PooledAudioFrame * audioFrame = client->audioPool.newFrame();
 			audioFrame->audioFrame.UpdateFrame(0,GST_BUFFER_TIMESTAMP(buffer),((short*)client->mapinfo.data) + (posInBuffer*numChannels),samplesIn10Ms,samplerate,webrtc::AudioFrame::kNormalSpeech,webrtc::AudioFrame::kVadActive,numChannels,0xffffffff,0xffffffff);
-			//cout << "analyze reverse returned " <<
+
 			client->echoCancel->analyzeReverse(audioFrame->audioFrame);// << endl;
 			client->sendAudioOut(audioFrame);
 			posInBuffer+=samplesIn10Ms;
