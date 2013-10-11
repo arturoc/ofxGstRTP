@@ -623,6 +623,27 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",videoSessionNumber,&internalSession,NULL);
 
+			if(internalSession){
+				// read all the properties in the internal session
+				/*GParamSpec** properties;
+				guint n_properties;
+				properties = g_object_class_list_properties(G_OBJECT_GET_CLASS(internalSession),&n_properties);
+				for(guint i=0; i<n_properties; i++){
+					cout << properties[i]->name <<endl;
+				}*/
+
+				// get internal session stats useful? perhaps sent packages and bitrate?
+				/*GObject * internalSource;
+				g_object_get(internalSession,"internal-source",&internalSource);
+
+				GstStructure *stats;
+				g_object_get (internalSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);*/
+			}else{
+				ofLogError() << "couldn't get local stats";
+			}
+
 			GObject * remoteSource;
 			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", videoSSRC, &remoteSource, NULL);
 
@@ -630,9 +651,22 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				GstStructure *stats;
 				g_object_get (remoteSource, "stats", &stats, NULL);
 
-				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				uint rb_round_trip;
+				int rb_packetslost;
+				uint rb_fractionlost;
+				uint rb_jitter;
+				gst_structure_get(stats,"rb-round-trip",G_TYPE_UINT,&rb_round_trip,
+										"rb-packetslost",G_TYPE_INT,&rb_packetslost,
+										"rb-fractionlost",G_TYPE_UINT,&rb_fractionlost,
+										"rb-jitter",G_TYPE_UINT,&rb_jitter,
+										NULL);
+				ofLogNotice(LOG_NAME) << "remote video: round trip:" << rb_round_trip
+						<< " packetslost: " << rb_packetslost
+						<< " fractionlost: " << rb_fractionlost
+						<< " jitter: " << rb_jitter;
 			}else{
-				ofLogError() << "couldn't get stats";
+				ofLogError() << "couldn't get remote stats";
 			}
 		}
 
@@ -664,7 +698,20 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				GstStructure *stats;
 				g_object_get (remoteSource, "stats", &stats, NULL);
 
-				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				uint rb_round_trip;
+				int rb_packetslost;
+				uint rb_fractionlost;
+				uint rb_jitter;
+				gst_structure_get(stats,"rb-round-trip",G_TYPE_UINT,&rb_round_trip,
+										"rb-packetslost",G_TYPE_INT,&rb_packetslost,
+										"rb-fractionlost",G_TYPE_UINT,&rb_fractionlost,
+										"rb-jitter",G_TYPE_UINT,&rb_jitter,
+										NULL);
+				ofLogNotice(LOG_NAME) << "remote audio: round trip:" << rb_round_trip
+						<< " packetslost: " << rb_packetslost
+						<< " fractionlost: " << rb_fractionlost
+						<< " jitter: " << rb_jitter;
 			}else{
 				ofLogError() << "couldn't get stats";
 			}
@@ -728,7 +775,7 @@ bool ofxGstRTPServer::on_message(GstMessage * msg){
 		return true;
 	}
 	default:
-		ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
+		//ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
 		return false;
 	}
 }
@@ -1009,10 +1056,10 @@ void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
 
 	GstBuffer * echoCancelledBuffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledFrame->audioFrame._payloadData,size,0,size,pooledFrame,(GDestroyNotify)&ofxWebRTCAudioPool::relaseFrame);
 
-	GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
+	/*GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
 	GstClockTime now = prevTimestamp + duration;
 
-	/*GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
+	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
 	GST_BUFFER_DTS (echoCancelledBuffer) = now;
 	GST_BUFFER_PTS (echoCancelledBuffer) = now;

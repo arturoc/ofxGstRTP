@@ -225,7 +225,7 @@ void ofxGstRTPClient::linkAudioPad(GstPad * pad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to audio depay";
 		}else{
-			cout << "audio pipeline complete!" << endl;
+			ofLogVerbose(LOG_NAME) << "audio pipeline complete!";
 			audioReady = true;
 			//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 		}
@@ -247,7 +247,7 @@ void ofxGstRTPClient::linkVideoPad(GstPad * pad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to video depay";
 		}else{
-			cout << "video pipeline complete!" << endl;
+			ofLogVerbose(LOG_NAME) << "video pipeline complete!";
 			videoReady = true;
 			//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 		}
@@ -269,7 +269,7 @@ void ofxGstRTPClient::linkDepthPad(GstPad * pad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to depth depay";
 		}else{
-			cout << "depth pipeline complete!" << endl;
+			ofLogVerbose(LOG_NAME) << "depth pipeline complete!";
 			depthReady = true;
 			//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 		}
@@ -293,7 +293,7 @@ void ofxGstRTPClient::linkOscPad(GstPad * pad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to osc depay";
 		}else{
-			cout << "osc pipeline complete!" << endl;
+			ofLogVerbose(LOG_NAME) << "osc pipeline complete!";
 			oscReady = true;
 			//gst_element_set_state(gst.getPipeline(),GST_STATE_PLAYING);
 		}
@@ -491,7 +491,7 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 		audioresample2 = gst_element_factory_make("audioresample","audioresample2");
 		audioechosink = gst_element_factory_make("appsink","audioechosink");
 		audioechosrc = gst_element_factory_make("appsrc","audioechosrc");
-		g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,NULL);
+		g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,"do-timestamp",1,NULL);
 
 		// set format for video appsink to rgb
 		GstCaps * caps = NULL;
@@ -1184,7 +1184,7 @@ bool ofxGstRTPClient::on_message(GstMessage * msg){
 		return true;
 	}
 	default:
-		ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
+		//ofLogVerbose(LOG_NAME) << "Got " << GST_MESSAGE_TYPE_NAME(msg) << " message from " << GST_MESSAGE_SRC_NAME(msg);
 		return false;
 	}
 }
@@ -1290,7 +1290,7 @@ GstFlowReturn ofxGstRTPClient::on_new_preroll_from_audio(GstAppSink * elt, void 
 }
 
 void ofxGstRTPClient::sendAudioOut(PooledAudioFrame * pooledFrame){
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gstAudioOut.getPipeline()));
+	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gstAudioOut.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gstAudioOut.getPipeline());
 	gst_object_unref (clock);
@@ -1299,19 +1299,19 @@ void ofxGstRTPClient::sendAudioOut(PooledAudioFrame * pooledFrame){
 		prevTimestampAudio = now;
 		firstAudioFrame = false;
 		return;
-	}
+	}*/
 
 	//cout << "client sending " << frame._payloadDataLengthInSamples << " samples at " << (int)(now*0.000001) << "ms" << endl;
 	int size = pooledFrame->audioFrame._payloadDataLengthInSamples*2*pooledFrame->audioFrame._audioChannel;
 
 	GstBuffer * echoCancelledBuffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledFrame->audioFrame._payloadData,size,0,size,pooledFrame,(GDestroyNotify)&ofxWebRTCAudioPool::relaseFrame);
 
-	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
+	/*GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
 	GST_BUFFER_DTS (echoCancelledBuffer) = now;
 	GST_BUFFER_PTS (echoCancelledBuffer) = now;
 	GST_BUFFER_DURATION(echoCancelledBuffer) = now-prevTimestampAudio;
-	prevTimestampAudio = now;
+	prevTimestampAudio = now;*/
 
 
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)audioechosrc, echoCancelledBuffer);
