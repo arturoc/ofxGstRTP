@@ -1225,11 +1225,16 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_video(GstAppSink * elt){
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
 	if(!doubleBufferVideo.isAllocated()){
 		GstCaps * sampleCaps = gst_sample_get_caps(sample);
-		GstVideoInfo sampleInfo;
-		gst_video_info_from_caps(&sampleInfo,sampleCaps);
-		doubleBufferVideo.setup( sampleInfo.width , sampleInfo.height , 3);
+		if(sampleCaps){
+			GstVideoInfo sampleInfo;
+			if(gst_video_info_from_caps(&sampleInfo,sampleCaps)){
+				doubleBufferVideo.setup( sampleInfo.width , sampleInfo.height , 3);
+			}
+		}
 	}
-	doubleBufferVideo.newSample(sample);
+	if(doubleBufferVideo.isAllocated()){
+		doubleBufferVideo.newSample(sample);
+	}
 	return GST_FLOW_OK;
 }
 
@@ -1254,17 +1259,22 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt){
 
 	if(!doubleBufferDepth.isAllocated()){
 		GstCaps * sampleCaps = gst_sample_get_caps(sample);
-		GstVideoInfo sampleInfo;
-		gst_video_info_from_caps(&sampleInfo,sampleCaps);
-		if(depth16){
-			doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,3);
-			depth16Pixels.allocate(sampleInfo.width , sampleInfo.height,1);
-		}else{
-			doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,1);
+		if(sampleCaps){
+			GstVideoInfo sampleInfo;
+			if(gst_video_info_from_caps(&sampleInfo,sampleCaps)){
+				if(depth16){
+					doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,3);
+					depth16Pixels.allocate(sampleInfo.width , sampleInfo.height,1);
+				}else{
+					doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,1);
+				}
+			}
 		}
 	}
 
-	doubleBufferDepth.newSample(sample);
+	if(doubleBufferDepth.isAllocated()){
+		doubleBufferDepth.newSample(sample);
+	}
 	return GST_FLOW_OK;
 }
 

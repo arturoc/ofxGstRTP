@@ -162,7 +162,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 		string vsource= velem + " ! " + vcaps + " ! videoconvert name=vconvert1";
 
 		// h264 encoder + rtp pay
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=1 key-int-max=3 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
 
 	// video rtpc
 	// ------------------
@@ -278,7 +278,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		string dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=1 key-int-max=3 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
 
 	// depth rtpc
 	// ------------------
@@ -609,9 +609,11 @@ void ofxGstRTPServer::on_new_ssrc_handler(GstBin *rtpbin, guint session, guint s
 	}else if(session==server->videoSessionNumber){
 		server->videoSSRC = ssrc;
 		server->sendVideoKeyFrame = false;
+		g_object_set(server->vEncoder,"key-int-max",0,NULL);
 	}else if(session==server->depthSessionNumber){
 		server->depthSSRC = ssrc;
 		server->sendDepthKeyFrame = false;
+		g_object_set(server->dEncoder,"key-int-max",0,NULL);
 	}else if(session==server->oscSessionNumber){
 		server->oscSSRC = ssrc;
 	}
@@ -823,7 +825,7 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	prevTimestamp = now;*/
 
 
-	if(sendVideoKeyFrame){
+	/*if(sendVideoKeyFrame){
 		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 		gst_object_ref(clock);
 		GstClockTime time = gst_clock_get_time (clock);
@@ -835,7 +837,7 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 																 TRUE,
 																 0);
 		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
-	}
+	}*/
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcVideoRGB, buffer);
@@ -887,7 +889,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
 	prevTimestampDepth = now;*/
 
-	if(sendDepthKeyFrame){
+	/*if(sendDepthKeyFrame){
 		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 		gst_object_ref(clock);
 		GstClockTime time = gst_clock_get_time (clock);
@@ -899,7 +901,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 																 TRUE,
 																 0);
 		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
-	}
+	}*/
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcDepth, buffer);
