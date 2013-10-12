@@ -8,13 +8,13 @@ void ofApp::setup(){
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
-	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
-	/*ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);*/
+	//ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
+	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 
 	grabber.initGrabber(640,480);
 	remoteVideo.allocate(640,480,GL_RGB);
 
-	rtp.setup(800);
+	rtp.setup(500);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);

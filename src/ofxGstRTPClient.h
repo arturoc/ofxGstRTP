@@ -84,6 +84,7 @@ public:
 #endif
 
 private:
+	void requestKeyFrame();
 	void latencyChanged(int & latency);
 	void dropChanged(bool & drop);
 
@@ -197,6 +198,7 @@ private:
 	GstElement * oudpsrcrtcp;
 
 	GstElement * audioechosrc;
+	GstElement * audioechosink;
 
 
 	ofxGstVideoDoubleBuffer<unsigned char> doubleBufferVideo;

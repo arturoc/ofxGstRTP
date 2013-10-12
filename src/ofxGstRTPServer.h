@@ -70,6 +70,9 @@ public:
 
 	void play();
 
+	void emitVideoKeyFrame();
+	void emitDepthKeyFrame();
+
 	void newFrame(ofPixels & pixels);
 	void newFrameDepth(ofPixels & pixels);
 	void newFrameDepth(ofShortPixels & pixels);
@@ -173,6 +176,10 @@ private:
 	ofxWebRTCAudioPool audioPool;
 	void sendAudioOut(PooledAudioFrame * pooledFrame);
 #endif
+
+
+	// rctp stats stream adjustment
+	int videoPacketsLost, depthPacketsLost;
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */

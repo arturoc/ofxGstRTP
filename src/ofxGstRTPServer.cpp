@@ -162,7 +162,8 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 		string vsource= velem + " ! " + vcaps + " ! videoconvert name=vconvert1";
 
 		// h264 encoder + rtp pay
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=1 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96";
+		// x264 settings from http://stackoverflow.com/questions/12221569/x264-rate-control
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=superfast psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600 name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
 
 	// video rtpc
 	// ------------------
@@ -225,7 +226,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 
 		// opus encoder + opus pay
 		// FIXME: audio=0 is voice??
-		string aenc = "opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
+		string aenc = "opusenc name=aencoder audio=0 ! rtpopuspay pt=98";
 
 	// audio rtpc
 		string artpsink;
@@ -278,7 +279,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		string dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=1 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98";
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=superfast psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=97 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
 
 	// depth rtpc
 	// ------------------
@@ -633,19 +634,77 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				}*/
 
 				// get internal session stats useful? perhaps sent packages and bitrate?
-				/*GObject * internalSource;
-				g_object_get(internalSession,"internal-source",&internalSource);
+				GObject * internalSource;
+				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
 				GstStructure *stats;
 				g_object_get (internalSource, "stats", &stats, NULL);
 
-				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);*/
+				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				guint64 bitrate;
+				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
+										NULL);
+
+				ofLogNotice(LOG_NAME) << "local video bitrate: " << bitrate;
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
 
 			GObject * remoteSource;
 			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", videoSSRC, &remoteSource, NULL);
+
+			if(remoteSource){
+				GstStructure *stats;
+				g_object_get (remoteSource, "stats", &stats, NULL);
+
+				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				uint rb_round_trip;
+				int rb_packetslost;
+				uint rb_fractionlost;
+				uint rb_jitter;
+				gst_structure_get(stats,"rb-round-trip",G_TYPE_UINT,&rb_round_trip,
+										"rb-packetslost",G_TYPE_INT,&rb_packetslost,
+										"rb-fractionlost",G_TYPE_UINT,&rb_fractionlost,
+										"rb-jitter",G_TYPE_UINT,&rb_jitter,
+										NULL);
+				ofLogNotice(LOG_NAME) << "remote video: round trip:" << rb_round_trip
+						<< " packetslost: " << rb_packetslost
+						<< " fractionlost: " << rb_fractionlost
+						<< " jitter: " << rb_jitter;
+
+				if(videoPacketsLost<rb_packetslost){
+					emitVideoKeyFrame();
+				}
+				videoPacketsLost = rb_packetslost;
+			}else{
+				ofLogError() << "couldn't get remote stats";
+			}
+		}
+
+		if(depthSSRC!=0 && depthSessionNumber!=-1){
+			GObject * internalSession;
+			g_signal_emit_by_name(rtpbin,"get-internal-session",depthSessionNumber,&internalSession,NULL);
+
+			GObject * remoteSource;
+			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", depthSSRC, &remoteSource, NULL);
+
+			if(internalSession){
+				// get internal session stats useful? perhaps sent packages and bitrate?
+				GObject * internalSource;
+				g_object_get(internalSession,"internal-source",&internalSource, NULL);
+
+				GstStructure *stats;
+				g_object_get (internalSource, "stats", &stats, NULL);
+
+				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				guint64 bitrate;
+				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
+										NULL);
+
+				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+			}else{
+				ofLogError() << "couldn't get local stats";
+			}
 
 			if(remoteSource){
 				GstStructure *stats;
@@ -661,27 +720,15 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 										"rb-fractionlost",G_TYPE_UINT,&rb_fractionlost,
 										"rb-jitter",G_TYPE_UINT,&rb_jitter,
 										NULL);
-				ofLogNotice(LOG_NAME) << "remote video: round trip:" << rb_round_trip
+				ofLogNotice(LOG_NAME) << "remote audio: round trip:" << rb_round_trip
 						<< " packetslost: " << rb_packetslost
 						<< " fractionlost: " << rb_fractionlost
 						<< " jitter: " << rb_jitter;
-			}else{
-				ofLogError() << "couldn't get remote stats";
-			}
-		}
 
-		if(depthSSRC!=0 && depthSessionNumber!=-1){
-			GObject * internalSession;
-			g_signal_emit_by_name(rtpbin,"get-internal-session",depthSessionNumber,&internalSession,NULL);
-
-			GObject * remoteSource;
-			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", depthSSRC, &remoteSource, NULL);
-
-			if(remoteSource){
-				GstStructure *stats;
-				g_object_get (remoteSource, "stats", &stats, NULL);
-
-				ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				if(depthPacketsLost<rb_packetslost){
+					emitDepthKeyFrame();
+				}
+				depthPacketsLost = rb_packetslost;
 			}else{
 				ofLogError() << "couldn't get stats";
 			}
@@ -693,6 +740,24 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 
 			GObject * remoteSource;
 			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", audioSSRC, &remoteSource, NULL);
+
+			if(internalSession){
+				// get internal session stats useful? perhaps sent packages and bitrate?
+				GObject * internalSource;
+				g_object_get(internalSession,"internal-source",&internalSource, NULL);
+
+				GstStructure *stats;
+				g_object_get (internalSource, "stats", &stats, NULL);
+
+				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+				guint64 bitrate;
+				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
+										NULL);
+
+				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+			}else{
+				ofLogError() << "couldn't get local stats";
+			}
 
 			if(remoteSource){
 				GstStructure *stats;
@@ -780,6 +845,35 @@ bool ofxGstRTPServer::on_message(GstMessage * msg){
 	}
 }
 
+void ofxGstRTPServer::emitVideoKeyFrame(){
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	gst_object_ref(clock);
+	GstClockTime time = gst_clock_get_time (clock);
+	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
+	gst_object_unref (clock);
+	GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
+															 time,
+															 now,
+															 TRUE,
+															 0);
+	gst_element_send_event(appSrcVideoRGB,keyFrameEvent);
+
+}
+
+void ofxGstRTPServer::emitDepthKeyFrame(){
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	gst_object_ref(clock);
+	GstClockTime time = gst_clock_get_time (clock);
+	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
+	gst_object_unref (clock);
+	GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
+															 time,
+															 now,
+															 TRUE,
+															 0);
+	gst_element_send_event(appSrcDepth,keyFrameEvent);
+
+}
 
 void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	// here we push new video frames in the pipeline, it's important
@@ -823,19 +917,10 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	prevTimestamp = now;*/
 
 
-	if(sendVideoKeyFrame){
-		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-		gst_object_ref(clock);
-		GstClockTime time = gst_clock_get_time (clock);
-		GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
-		gst_object_unref (clock);
-		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
-																 time,
-																 now,
-																 TRUE,
-																 0);
-		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
+	if(sendVideoKeyFrame && numFrame%5==0){
+		emitVideoKeyFrame();
 	}
+	numFrame++;
 
 	// finally push the buffer into the pipeline through the appsrc element
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcVideoRGB, buffer);
@@ -888,17 +973,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	prevTimestampDepth = now;*/
 
 	if(sendDepthKeyFrame){
-		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-		gst_object_ref(clock);
-		GstClockTime time = gst_clock_get_time (clock);
-		GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
-		gst_object_unref (clock);
-		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
-																 time,
-																 now,
-																 TRUE,
-																 0);
-		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
+		emitDepthKeyFrame();
 	}
 
 	// finally push the buffer into the pipeline through the appsrc element
