@@ -9,8 +9,9 @@ void ofApp::setup(){
 	string pwd = settings.getValue("pwd");
 
 	//ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
-	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+	//ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 
+	//grabber.setDeviceID(1);
 	grabber.initGrabber(640,480);
 	remoteVideo.allocate(640,480,GL_RGB);
 

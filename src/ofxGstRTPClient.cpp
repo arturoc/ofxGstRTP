@@ -1295,8 +1295,8 @@ void ofxGstRTPClient::sendAudioOut(PooledAudioFrame * pooledFrame){
 
 	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
 	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
-	GST_BUFFER_DTS (echoCancelledBuffer) = now + (gint64)((latency-RTPBIN_MAX_LATENCY)*GST_MSECOND);
-	GST_BUFFER_PTS (echoCancelledBuffer) = now + (gint64)((latency-RTPBIN_MAX_LATENCY)*GST_MSECOND);
+	GST_BUFFER_DTS (echoCancelledBuffer) = max((gint64)now + (gint64)((latency-RTPBIN_MAX_LATENCY)*GST_MSECOND),(gint64)0);
+	GST_BUFFER_PTS (echoCancelledBuffer) = max((gint64)now + (gint64)((latency-RTPBIN_MAX_LATENCY)*GST_MSECOND),(gint64)0);
 	GST_BUFFER_DURATION(echoCancelledBuffer) = duration;
 	prevTimestampAudio = now+duration;
 
