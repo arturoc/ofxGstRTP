@@ -455,9 +455,6 @@ void ofxGstRTPClient::createAudioChannel(string rtpCaps){
 		audioresample2 = gst_element_factory_make("audioresample","audioresample2");
 
 		audioechosink = gst_element_factory_make("appsink","audioechosink");
-		g_object_set(audioechosink,"sync",FALSE,NULL);
-		gst_app_sink_set_max_buffers(GST_APP_SINK(audioechosink),1);
-		gst_app_sink_set_drop(GST_APP_SINK(audioechosink),1);
 
 		audioechosrc = gst_element_factory_make("appsrc","audioechosrc");
 		g_object_set(audioechosrc,"is-live",1,"format",GST_FORMAT_TIME,NULL);
