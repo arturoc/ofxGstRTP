@@ -14,12 +14,18 @@
 #include <glib-object.h>
 #include <glib.h>
 
+#if ENABLE_NAT_TRANSVERSAL
 #include <agent.h>
+#endif
 
 #include "ofxGstPixelsPool.h"
 #include "ofxGstRTPUtils.h"
 
 #include "ofxGstRTPClient.h"
+
+#ifdef TARGET_WIN32
+    typedef UINT uint;
+#endif // TARGET_WIN32
 
 
 //  sends the output of v4l2src as h264 encoded RTP on port 5000, RTCP is sent on

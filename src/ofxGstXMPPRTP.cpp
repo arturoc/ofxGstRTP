@@ -14,10 +14,10 @@
 #include "gstnicesrc.h"
 #include "gstnicesink.h"
 static gboolean nicesrc_plugin_init(GstPlugin * plugin){
-    gst_element_register(plugin, "nicesrc", GST_RANK_NONE, GST_TYPE_NICE_SRC);
+    return gst_element_register(plugin, "nicesrc", GST_RANK_NONE, GST_TYPE_NICE_SRC);
 }
 static gboolean nicesink_plugin_init(GstPlugin * plugin){
-    gst_element_register(plugin, "nicesink", GST_RANK_NONE, GST_TYPE_NICE_SINK);
+    return gst_element_register(plugin, "nicesink", GST_RANK_NONE, GST_TYPE_NICE_SINK);
 }
 #endif
 
@@ -36,7 +36,7 @@ ofxGstXMPPRTP::ofxGstXMPPRTP()
     static bool plugins_registered = false;
     if(!plugins_registered){
         gst_plugin_register_static(GST_VERSION_MAJOR, GST_VERSION_MINOR, "nicesrc", strdup("nicesrc"), nicesrc_plugin_init, "1.0.4", "BSD", "libnice", "nice", "http://libnice.org");
-        
+
         gst_plugin_register_static(GST_VERSION_MAJOR, GST_VERSION_MINOR, "nicesink", strdup("nicesink"), nicesink_plugin_init, "1.0.4", "BSD", "libnice", "nice", "http://libnice.org");
         plugins_registered = true;
     }

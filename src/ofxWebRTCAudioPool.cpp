@@ -6,6 +6,7 @@
  */
 
 #include "ofxWebRTCAudioPool.h"
+#if ENABLE_ECHO_CANCEL
 
 ofxWebRTCAudioPool::ofxWebRTCAudioPool() {
 	// TODO Auto-generated constructor stub
@@ -40,3 +41,5 @@ void ofxWebRTCAudioPool::returnFrameToPool(PooledAudioFrame * frame){
 	pool.push_back(frame);
 	mutex.unlock();
 }
+
+#endif
