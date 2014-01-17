@@ -16,6 +16,6 @@
 /// when enabled the addon will have dependencies with ofxEchoCancel on linux
 /// the pulse server can do echo cancellation natively so there's no need to enable
 /// this flag
-#define ENABLE_ECHO_CANCEL 1
+#define ENABLE_ECHO_CANCEL 0
 
 #endif /* OFXGSTRTPCONSTANTS_H_ */

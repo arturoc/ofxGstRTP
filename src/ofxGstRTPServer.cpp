@@ -14,12 +14,18 @@
 #include <glib-object.h>
 #include <glib.h>
 
+#if ENABLE_NAT_TRANSVERSAL
 #include <agent.h>
+#endif
 
 #include "ofxGstPixelsPool.h"
 #include "ofxGstRTPUtils.h"
 
 #include "ofxGstRTPClient.h"
+
+#ifdef TARGET_WIN32
+    typedef UINT uint;
+#endif // TARGET_WIN32
 
 
 //  sends the output of v4l2src as h264 encoded RTP on port 5000, RTCP is sent on
@@ -279,7 +285,7 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		string dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
 
 		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=superfast name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=97 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600
+		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=superfast psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=97 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
 
 	// depth rtpc
 	// ------------------

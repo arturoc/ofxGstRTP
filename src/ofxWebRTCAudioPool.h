@@ -8,6 +8,10 @@
 #ifndef OFXWEBRTCAUDIOPOOL_H_
 #define OFXWEBRTCAUDIOPOOL_H_
 
+#include "ofxGstRTPConstants.h"
+
+#if ENABLE_ECHO_CANCEL
+
 #include "ofxEchoCancel.h"
 #include "ofConstants.h"
 #include <list>
@@ -37,5 +41,7 @@ private:
 	list<PooledAudioFrame *> pool;
 	ofMutex mutex;
 };
+
+#endif
 
 #endif /* OFXWEBRTCAUDIOPOOL_H_ */

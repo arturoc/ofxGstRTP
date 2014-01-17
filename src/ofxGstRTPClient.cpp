@@ -419,9 +419,9 @@ void ofxGstRTPClient::createVideoChannel(string rtpCaps){
 
 	// set callbacks to receive rgb data
 	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &on_eos_from_video;
-	gstCallbacks.new_preroll = &on_new_preroll_from_video;
-	gstCallbacks.new_sample = &on_new_buffer_from_video;
+	gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_video;
+	gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_video;
+	gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_video;
 	gst_app_sink_set_callbacks(GST_APP_SINK(videoSink), &gstCallbacks, this, NULL);
 	gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink),0);
 
@@ -565,9 +565,9 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, bool depth16){
 
 	// set callbacks to receive depth data
 	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &on_eos_from_depth;
-	gstCallbacks.new_preroll = &on_new_preroll_from_depth;
-	gstCallbacks.new_sample = &on_new_buffer_from_depth;
+	gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_depth;
+	gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_depth;
+	gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_depth;
 	gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
 	gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
 
@@ -606,9 +606,9 @@ void ofxGstRTPClient::createOscChannel(string rtpCaps){
 
 	// set callbacks to receive osc data
 	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &on_eos_from_osc;
-	gstCallbacks.new_preroll = &on_new_preroll_from_osc;
-	gstCallbacks.new_sample = &on_new_buffer_from_osc;
+	gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_osc;
+	gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_osc;
+	gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_osc;
 	gst_app_sink_set_callbacks(GST_APP_SINK(oscSink), &gstCallbacks, this, NULL);
 	gst_app_sink_set_emit_signals(GST_APP_SINK(oscSink),0);
 
@@ -861,6 +861,9 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 	this->latency = latency;
 
 	pipeline = gst_pipeline_new("rtpclientpipeline");
+	if(!pipeline){
+        ofLogError() << "couldn't create pipeline";
+	}
 	gst.setSinkListener(this);
 
 #if ENABLE_ECHO_CANCEL
@@ -870,7 +873,10 @@ void ofxGstRTPClient::setup(string srcIP, int latency){
 	}
 #endif
 
-	rtpbin	 = gst_element_factory_make("rtpbin","rtpbin");
+	rtpbin	 = gst_element_factory_make("rtpbin","rtpbinclient");
+	if(!rtpbin){
+        ofLogError() << "couldn't create rtpbin";
+	}
 	g_object_set(rtpbin,"latency",RTPBIN_MAX_LATENCY,NULL);
 	g_object_set(rtpbin,"drop-on-latency",(bool)drop,NULL);
 	g_object_set(rtpbin,"do-lost",TRUE,NULL);
