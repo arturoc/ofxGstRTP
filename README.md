@@ -1,25 +1,17 @@
 # ofxGstRTP 
 
-openFrameworks addon to send video, audio, depth and metadata through osc between to computers. This addon uses ofxXMPP to establish the connection using jabber, google talk or any other xmpp compatible server. There's some examples that demonstrate how to establish a connection with another computer using this services. This allows to avoid having to set static ips. IT also uses ofxNice to allow for NAT transversal which means that you can send data from one computer to another even if they are behind a router without need to open any ports on them. Only in the case that both peers are behind symetric routers (which should only exist in big organizations, hotels...) the NAT transversal won't work.
+ofxGstRTP is part of a toolkit in development called OFStreamer, which is a set of openFrameworks addons designed to make it easier to use GStreamer on OSX and Windows. The toolkit is being developed by [Arturo Castro](http://arturocastro.net/) and [Seth Hunter](http://www.perspectum.com/) for applications that require streaming video, audio and metadata between remote locations. 
+
+You can use the examples included in ofxGstRTP to send multiple compressed channels of data between remote peer-to-peer networks. For example, send h.264 compressed video and depth, compressed audio, and osc metadata between applications in different countries.  
+
+The addon uses [ofxXMPP](https://github.com/arturoc/ofxXMPP) to establish the connection using jabber, google talk or any other xmpp compatible server. There's some examples that demonstrate how to establish a connection with another computer using these services. In addition, we resolve NAT traversal issues (computers being behind routers) using [ofxNice](https://github.com/arturoc/ofxXMPP) so you don't have to use static IPs or setup a VPN, potentially making your applicaiton scalable to many clients. NAT traversal will work with most routers (92%) except symetric routers in big organizations and hotels.
+
+Currently we have examples working on OSX and Linux and are working on porting the examples to windows 7 and 8. 
 
 
 ## Installing gstreamer
 
-This addon also depends on gstreamer, in linux it's installed by default as part of the openFrameworks dependencies. On osx and windows you'll need to install it manually:
-
-### osx
-
-- We are using gstreamer-1.0. To install it under osx use this [packages](http://gstreamer.freedesktop.org/data/pkg/osx/1.0.8/)
-
-    - gstreamer-1.0-1.0.8-universal.pkg           installs the necesary libraries for applications to run
-    - gstreamer-1.0-devel-1.0.8-universal.pkg     installs the development files needed to compile gst aplications
-    - gstreamer-1.0-1.0.8-universal-packages.dmg  contains some additional packages that we'll need to encode/decode h264 from this we need to install
-        - gstreamer-1.0-libav-1.0.8-universal.pkg
-        - gstreamer-1.0-codecs-restricted-1.0.8-universal.pkg
-        - gstreamer-1.0-net-restricted-1.0.8-universal.pkg
-        
-- If we only want to run an osx app. The devel package is not needed but by now we need to install the rest of packages
-- On some systems it seems it's necesary to remove or rename /Library/Frameworks/GStreamer/Headers/assert.h   or it'll clash with the assert.h in the system and some projects won't compile. As far as i've tested it's safe to just delete it but it's probably better to keep a copy just in case.
+This addon also depends on gstreamer, in linux it's installed by default as part of openFrameworks. On OSX and Windows you'll need to install it manually. To make this process easier please use the [ofxGtreamer](https://github.com/arturoc/ofxGstreamer) addon and follow the directions included there to install the dependencies. 
 
 ## Running the examples
 
