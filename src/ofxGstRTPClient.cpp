@@ -109,6 +109,8 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,prevAudioBuffer(0)
 ,audioFramesProcessed(0)
 #endif
+
+,audioechosrc(NULL)
 {
 	GstMapInfo initMapinfo		= {0,};
 	mapinfo = initMapinfo;
@@ -972,10 +974,10 @@ void ofxGstRTPClient::play(){
 #endif
 
 	// connect callback to the on-ssrc-active signal
-	g_signal_connect(gst.getGstElementByName("rtpbin"),"pad-added", G_CALLBACK(&ofxGstRTPClient::on_pad_added),this);
-	g_signal_connect(gst.getGstElementByName("rtpbin"),"on-ssrc-active",G_CALLBACK(&ofxGstRTPClient::on_ssrc_active_handler),this);
-	g_signal_connect(gst.getGstElementByName("rtpbin"),"on-bye-ssrc",G_CALLBACK(&ofxGstRTPClient::on_bye_ssrc_handler),this);
-	g_signal_connect(gst.getGstElementByName("rtpbin"),"on-new-ssrc",G_CALLBACK(&ofxGstRTPClient::on_new_ssrc_handler),this);
+	g_signal_connect(gst.getGstElementByName("rtpbinclient"),"pad-added", G_CALLBACK(&ofxGstRTPClient::on_pad_added),this);
+	g_signal_connect(gst.getGstElementByName("rtpbinclient"),"on-ssrc-active",G_CALLBACK(&ofxGstRTPClient::on_ssrc_active_handler),this);
+	g_signal_connect(gst.getGstElementByName("rtpbinclient"),"on-bye-ssrc",G_CALLBACK(&ofxGstRTPClient::on_bye_ssrc_handler),this);
+	g_signal_connect(gst.getGstElementByName("rtpbinclient"),"on-new-ssrc",G_CALLBACK(&ofxGstRTPClient::on_new_ssrc_handler),this);
 
 	if(audioechosrc){
 		gst_app_src_set_stream_type((GstAppSrc*)audioechosrc,GST_APP_STREAM_TYPE_STREAM);
