@@ -223,6 +223,8 @@ void ofxGstRTPServer::addAudioChannel(int port){
 			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
 			// FIXME: we should detect the format somehow and set it automatically
 			aelem = "osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ";
+		#elif defined(TARGET_WIN32)
+			aelem = "autoaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ";
 		#endif
 		}
 
@@ -749,7 +751,9 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 
 			if(internalSession){
 				// get internal session stats useful? perhaps sent packages and bitrate?
-				GObject * internalSource;
+				/*FIXME: this is crashing on linux now
+				 *
+				 * GObject * internalSource;
 				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
 				GstStructure *stats;
@@ -760,7 +764,7 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
 										NULL);
 
-				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;*/
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
