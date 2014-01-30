@@ -223,7 +223,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 			// for osx we specify the output format since osxaudiosrc doesn't report the formats supported by the hw
 			// FIXME: we should detect the format somehow and set it automatically
 			aelem = "osxaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ";
-		#elif defined(TARGET_WIN32)
+		#else
 			aelem = "autoaudiosrc name=audiocapture ! audio/x-raw,rate=44100,channels=1 ";
 		#endif
 		}
