@@ -754,14 +754,20 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				GObject * internalSource;
 				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
-				GstStructure *stats;
-				g_object_get (internalSource, "stats", &stats, NULL);
+				if(internalSource){
+					GstStructure *stats;
+					g_object_get (internalSource, "stats", &stats, NULL);
 
-				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
-				guint64 bitrate;
-				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
+					//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+					guint64 bitrate;
+					if(stats){
+						gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
 
-				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+						ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+					}
+				}else{
+					ofLogError(LOG_NAME) << "couldn't get internal source";
+				}
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
