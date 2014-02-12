@@ -751,9 +751,7 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 
 			if(internalSession){
 				// get internal session stats useful? perhaps sent packages and bitrate?
-				/*FIXME: this is crashing on linux now
-				 *
-				 * GObject * internalSource;
+				GObject * internalSource;
 				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
 				GstStructure *stats;
@@ -761,10 +759,9 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 
 				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
 				guint64 bitrate;
-				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
-										NULL);
+				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
 
-				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;*/
+				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
