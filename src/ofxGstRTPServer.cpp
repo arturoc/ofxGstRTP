@@ -169,7 +169,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 
 		// h264 encoder + rtp pay
 		// x264 settings from http://stackoverflow.com/questions/12221569/x264-rate-control
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=ultrafast name=vencoder psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000 ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=superfast name=vencoder psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000 ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
 
 	// video rtpc
 	// ------------------
