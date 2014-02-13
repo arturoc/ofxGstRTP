@@ -169,7 +169,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 
 		// h264 encoder + rtp pay
 		// x264 settings from http://stackoverflow.com/questions/12221569/x264-rate-control
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=ultrafast name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=ultrafast name=vencoder psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000 ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
 
 	// video rtpc
 	// ------------------
@@ -657,10 +657,10 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 						ofLogNotice(LOG_NAME) << "local video bitrate: " << bitrate;
 					}
 				}else{
-					ofLogError(LOG_NAME) << "couldn't get internal source";
+					ofLogError(LOG_NAME) << "couldn't get internal video source";
 				}
 			}else{
-				ofLogError() << "couldn't get local stats";
+				ofLogError() << "couldn't get local video internal session";
 			}
 
 			GObject * remoteSource;
@@ -718,10 +718,10 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 						ofLogNotice(LOG_NAME) << "local depth bitrate: " << bitrate;
 					}
 				}else{
-					ofLogError(LOG_NAME) << "couldn't get internal source";
+					ofLogError(LOG_NAME) << "couldn't get depth internal source";
 				}
 			}else{
-				ofLogError() << "couldn't get local stats";
+				ofLogError() << "couldn't get local depth internal session";
 			}
 
 			if(remoteSource){
@@ -776,10 +776,10 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 						ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
 					}
 				}else{
-					ofLogError(LOG_NAME) << "couldn't get internal source";
+					ofLogError(LOG_NAME) << "couldn't get audio internal source";
 				}
 			}else{
-				ofLogError() << "couldn't get local stats";
+				ofLogError() << "couldn't get local audio internal session";
 			}
 
 			if(remoteSource){
@@ -826,10 +826,10 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 						ofLogNotice(LOG_NAME) << "local osc bitrate: " << bitrate;
 					}
 				}else{
-					ofLogError(LOG_NAME) << "couldn't get internal source";
+					ofLogError(LOG_NAME) << "couldn't get internal osc source";
 				}
 			}else{
-				ofLogError() << "couldn't get local stats";
+				ofLogError() << "couldn't get local osc internal session";
 			}
 
 			GObject * remoteSource;
