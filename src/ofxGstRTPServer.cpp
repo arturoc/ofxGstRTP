@@ -645,15 +645,20 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				GObject * internalSource;
 				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
-				GstStructure *stats;
-				g_object_get (internalSource, "stats", &stats, NULL);
+				if(internalSource){
+					GstStructure *stats;
+					g_object_get (internalSource, "stats", &stats, NULL);
 
-				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
-				guint64 bitrate;
-				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
-										NULL);
+					//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+					guint64 bitrate;
+					if(stats){
+						gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
 
-				ofLogNotice(LOG_NAME) << "local video bitrate: " << bitrate;
+						ofLogNotice(LOG_NAME) << "local video bitrate: " << bitrate;
+					}
+				}else{
+					ofLogError(LOG_NAME) << "couldn't get internal source";
+				}
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
@@ -701,15 +706,20 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 				GObject * internalSource;
 				g_object_get(internalSession,"internal-source",&internalSource, NULL);
 
-				GstStructure *stats;
-				g_object_get (internalSource, "stats", &stats, NULL);
+				if(internalSource){
+					GstStructure *stats;
+					g_object_get (internalSource, "stats", &stats, NULL);
 
-				//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
-				guint64 bitrate;
-				gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate,
-										NULL);
+					//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+					guint64 bitrate;
+					if(stats){
+						gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
 
-				ofLogNotice(LOG_NAME) << "local audio bitrate: " << bitrate;
+						ofLogNotice(LOG_NAME) << "local depth bitrate: " << bitrate;
+					}
+				}else{
+					ofLogError(LOG_NAME) << "couldn't get internal source";
+				}
 			}else{
 				ofLogError() << "couldn't get local stats";
 			}
@@ -798,6 +808,29 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 		if(oscSSRC!=0 && oscSessionNumber!=-1){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",oscSessionNumber,&internalSession,NULL);
+
+			if(internalSession){
+				// get internal session stats useful? perhaps sent packages and bitrate?
+				GObject * internalSource;
+				g_object_get(internalSession,"internal-source",&internalSource, NULL);
+
+				if(internalSource){
+					GstStructure *stats;
+					g_object_get (internalSource, "stats", &stats, NULL);
+
+					//ofLogNotice(LOG_NAME) << gst_structure_to_string(stats);
+					guint64 bitrate;
+					if(stats){
+						gst_structure_get(stats,"bitrate",G_TYPE_UINT64,&bitrate, NULL);
+
+						ofLogNotice(LOG_NAME) << "local osc bitrate: " << bitrate;
+					}
+				}else{
+					ofLogError(LOG_NAME) << "couldn't get internal source";
+				}
+			}else{
+				ofLogError() << "couldn't get local stats";
+			}
 
 			GObject * remoteSource;
 			g_signal_emit_by_name (internalSession, "get-source-by-ssrc", oscSSRC, &remoteSource, NULL);
