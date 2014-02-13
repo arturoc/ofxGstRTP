@@ -133,6 +133,10 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,audioFramesProcessed(0)
 ,analogAudio(0x10000U)
 #endif
+,videoAutoTimestamp(false)
+,depthAutoTimestamp(false)
+,audioAutoTimestamp(false)
+,oscAutoTimestamp(false)
 {
 	videoBitrate.set("video bitrate (kbps)",300,0,6000);
 	videoBitrate.addListener(this,&ofxGstRTPServer::vBitRateChanged);
@@ -153,13 +157,14 @@ ofxGstRTPServer::~ofxGstRTPServer() {
 }
 
 
-void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
+void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps, bool autotimestamp){
 	videoSessionNumber = lastSessionNumber;
+	videoAutoTimestamp = autotimestamp;
 	lastSessionNumber++;
 	// video elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string velem="appsrc is-live=1 do-timestamp=1 format=time name=appsrcvideo";
+		string velem="appsrc is-live=1 do-timestamp="+ string(autotimestamp?"1":"0") +" format=time name=appsrcvideo";
 
 		// video format that we are pushing to the pipeline
 		string vcaps="video/x-raw,format=RGB,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
@@ -169,7 +174,7 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 
 		// h264 encoder + rtp pay
 		// x264 settings from http://stackoverflow.com/questions/12221569/x264-rate-control
-		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=superfast name=vencoder psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000 ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
+		string venc="x264enc tune=zerolatency byte-stream=true bitrate=" + ofToString(videoBitrate) +" speed-preset=ultrafast name=vencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=96 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)96,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 "; //psy-tune=grain me=4 subme=10 b-adapt=1 vbv-buf-capacity=1000
 
 	// video rtpc
 	// ------------------
@@ -201,8 +206,9 @@ void ofxGstRTPServer::addVideoChannel(int port, int w, int h, int fps){
 }
 
 
-void ofxGstRTPServer::addAudioChannel(int port){
+void ofxGstRTPServer::addAudioChannel(int port, bool autotimestamp){
 	audioSessionNumber = lastSessionNumber;
+	audioAutoTimestamp = autotimestamp;
 	lastSessionNumber++;
 
 	// audio elements
@@ -212,7 +218,7 @@ void ofxGstRTPServer::addAudioChannel(int port){
 #if ENABLE_ECHO_CANCEL
 		if(echoCancel){
 			parameters.add(reverseDriftCalculation);
-			aelem = "appsrc is-live=1 do-timestamp=1 format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
+			aelem = "appsrc is-live=1 do-timestamp="+ string(autotimestamp?"1":"0") +" format=time name=audioechosrc ! audio/x-raw,format=S16LE,rate=32000,channels=1 ";
 		}else
 #endif
 		{
@@ -266,14 +272,15 @@ void ofxGstRTPServer::addAudioChannel(int port){
 	parameters.add(audioBitrate);
 }
 
-void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool depth16){
+void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool depth16, bool autotimestamp){
 	depthSessionNumber = lastSessionNumber;
+	depthAutoTimestamp = autotimestamp;
 	lastSessionNumber++;
 
 	// depth elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string delem="appsrc is-live=1 do-timestamp=1 format=time name=appsrcdepth";
+		string delem="appsrc is-live=1 do-timestamp="+ string(autotimestamp?"1":"0") +" format=time name=appsrcdepth";
 
 		// video format that we are pushing to the pipeline
 		string dcaps;
@@ -322,14 +329,15 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 	parameters.add(depthBitrate);
 }
 
-void ofxGstRTPServer::addOscChannel(int port){
+void ofxGstRTPServer::addOscChannel(int port, bool autotimestamp){
 	oscSessionNumber = lastSessionNumber;
+	oscAutoTimestamp = autotimestamp;
 	lastSessionNumber++;
 
 	// osc elements
 	// ------------------
 		// appsrc, allows to pass new frames from the app using the newFrame method
-		string oelem="appsrc is-live=1 format=time do-timestamp=1 name=appsrcosc ! application/x-osc ";
+		string oelem="appsrc is-live=1 format=time do-timestamp="+ string(autotimestamp?"1":"0") +"  name=appsrcosc ! application/x-osc ";
 
 		// queue so the conversion and encoding happen in a different thread to appsrc
 		string osource = oelem;
@@ -365,24 +373,28 @@ void ofxGstRTPServer::addOscChannel(int port){
 }
 
 #if ENABLE_NAT_TRANSVERSAL
-void ofxGstRTPServer::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps){
+void ofxGstRTPServer::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool autotimestamp){
 	videoStream = niceStream;
-	addVideoChannel(0,w,h,fps);
+	videoAutoTimestamp = autotimestamp;
+	addVideoChannel(0,w,h,fps,autotimestamp);
 }
 
-void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream){
+void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream, bool autotimestamp){
 	audioStream = niceStream;
+	audioAutoTimestamp = autotimestamp;
 	addAudioChannel(0);
 }
 
-void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16){
+void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16, bool autotimestamp){
 	depthStream = niceStream;
-	addDepthChannel(0,w,h,fps,depth16);
+	depthAutoTimestamp = depthAutoTimestamp;
+	addDepthChannel(0,w,h,fps,depth16,autotimestamp);
 }
 
-void ofxGstRTPServer::addOscChannel(ofxNiceStream * niceStream){
+void ofxGstRTPServer::addOscChannel(ofxNiceStream * niceStream, bool autotimestamp){
 	oscStream = niceStream;
-	addOscChannel(0);
+	oscAutoTimestamp = autotimestamp;
+	addOscChannel(0,autotimestamp);
 }
 
 void ofxGstRTPServer::setup(){
@@ -929,17 +941,19 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	if(!bufferPool || !appSrcVideoRGB) return;
 
 	// get current time from the pipeline
-	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime time = gst_clock_get_time (clock);
 	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
 
-	if(firstVideoFrame){
-		prevTimestamp = now;
-		firstVideoFrame = false;
-		return;
-	}*/
+	if(!videoAutoTimestamp){
+		if(firstVideoFrame){
+			prevTimestamp = now;
+			firstVideoFrame = false;
+			return;
+		}
+	}
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPool->newBuffer();
@@ -955,12 +969,14 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	/*GST_BUFFER_OFFSET(buffer) = numFrame++;
-	GST_BUFFER_OFFSET_END(buffer) = numFrame;
-	GST_BUFFER_DTS (buffer) = now;
-	GST_BUFFER_PTS (buffer) = now;
-	GST_BUFFER_DURATION(buffer) = now-prevTimestamp;
-	prevTimestamp = now;*/
+	if(!videoAutoTimestamp){
+		GST_BUFFER_OFFSET(buffer) = numFrame++;
+		GST_BUFFER_OFFSET_END(buffer) = numFrame;
+		GST_BUFFER_DTS (buffer) = now;
+		GST_BUFFER_PTS (buffer) = now;
+		GST_BUFFER_DURATION(buffer) = now-prevTimestamp;
+		prevTimestamp = now;
+	}
 
 
 	if(sendVideoKeyFrame && numFrame%5==0){
@@ -984,17 +1000,20 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
 	// get current time from the pipeline
-	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime time = gst_clock_get_time (clock);
 	GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
+	if(!depthAutoTimestamp){
 
-	if(firstDepthFrame){
-		prevTimestampDepth = now;
-		firstDepthFrame = false;
-		return;
-	}*/
+		if(firstDepthFrame){
+			prevTimestampDepth = now;
+			firstDepthFrame = false;
+			return;
+		}
+	}
 
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
@@ -1011,12 +1030,15 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	/*GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
-	GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
-	GST_BUFFER_DTS (buffer) = now;
-	GST_BUFFER_PTS (buffer) = now;
-	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
-	prevTimestampDepth = now;*/
+
+	if(!depthAutoTimestamp){
+		GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
+		GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
+		GST_BUFFER_DTS (buffer) = now;
+		GST_BUFFER_PTS (buffer) = now;
+		GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
+		prevTimestampDepth = now;
+	}
 
 	if(sendDepthKeyFrame){
 		emitDepthKeyFrame();
@@ -1040,17 +1062,19 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
 	// get current time from the pipeline
-	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
+	if(!depthAutoTimestamp){
 
-	if(firstDepthFrame){
-		prevTimestampDepth = now;
-		firstDepthFrame = false;
-		return;
-	}*/
-
+		if(firstDepthFrame){
+			prevTimestampDepth = now;
+			firstDepthFrame = false;
+			return;
+		}
+	}
 	// get a pixels buffer from the pool and copy the passed frame into it
 	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
 	ofxGstRTPUtils::convertShortToColoredDepth(pixels,*pooledPixels,pow(2.f,14.f));
@@ -1065,12 +1089,15 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	// duration = timestamp - previousTimeStamp
 	// the duration is actually the duration of the previous frame
 	// but should be accurate enough
-	/*GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
-	GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
-	GST_BUFFER_DTS (buffer) = now;
-	GST_BUFFER_PTS (buffer) = now;
-	GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
-	prevTimestampDepth = now;*/
+
+	if(!depthAutoTimestamp){
+		GST_BUFFER_OFFSET(buffer) = numFrameDepth++;
+		GST_BUFFER_OFFSET_END(buffer) = numFrameDepth;
+		GST_BUFFER_DTS (buffer) = now;
+		GST_BUFFER_PTS (buffer) = now;
+		GST_BUFFER_DURATION(buffer) = now-prevTimestampDepth;
+		prevTimestampDepth = now;
+	}
 
 	if(sendDepthKeyFrame){
 		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
@@ -1100,28 +1127,35 @@ void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
 	if(!appSrcOsc) return;
 
 	// get current time from the pipeline
-	/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+
 	gst_object_ref(clock);
 	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
 	gst_object_unref (clock);
+	if(!oscAutoTimestamp){
 
-	if(firstOscFrame){
-		prevTimestampOsc = now;
-		firstOscFrame = false;
-		return;
-	}*/
+		if(firstOscFrame){
+			prevTimestampOsc = now;
+			firstOscFrame = false;
+			return;
+		}
+	}
 
 	PooledOscPacket * pooledOscPkg = oscPacketPool.newBuffer();
 	appendMessage(msg,pooledOscPkg->packet);
 
 	GstBuffer * buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledOscPkg->compressedData(),pooledOscPkg->compressedSize(),0,pooledOscPkg->compressedSize(),pooledOscPkg,(GDestroyNotify)&ofxOscPacketPool::relaseBuffer);
 
-	/*GST_BUFFER_OFFSET(buffer) = numFrameOsc++;
-	GST_BUFFER_OFFSET_END(buffer) = numFrameOsc;
-	GST_BUFFER_DTS (buffer) = now;
-	GST_BUFFER_PTS (buffer) = now;
-	GST_BUFFER_DURATION(buffer) = now-prevTimestampOsc;
-	prevTimestampOsc = now;*/
+
+	if(!oscAutoTimestamp){
+		GST_BUFFER_OFFSET(buffer) = numFrameOsc++;
+		GST_BUFFER_OFFSET_END(buffer) = numFrameOsc;
+		GST_BUFFER_DTS (buffer) = now;
+		GST_BUFFER_PTS (buffer) = now;
+		GST_BUFFER_DURATION(buffer) = now-prevTimestampOsc;
+		prevTimestampOsc = now;
+	}
 
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcOsc, buffer);
 	if (flow_return != GST_FLOW_OK) {
@@ -1163,29 +1197,31 @@ GstFlowReturn ofxGstRTPServer::on_new_preroll_from_audio(GstAppSink * elt, void 
 }
 
 void ofxGstRTPServer::sendAudioOut(PooledAudioFrame * pooledFrame){
-	if(firstAudioFrame){
-		/*GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-		gst_object_ref(clock);
-		GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
-		gst_object_unref (clock);
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+	gst_object_ref(clock);
+	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+	gst_object_unref (clock);
+	if(firstAudioFrame && !audioAutoTimestamp){
 		prevTimestampAudio = now;
 		firstAudioFrame = false;
-		return;*/
+		return;
 	}
 
 	int size = pooledFrame->audioFrame._payloadDataLengthInSamples*2*pooledFrame->audioFrame._audioChannel;
 
 	GstBuffer * echoCancelledBuffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY,(void*)pooledFrame->audioFrame._payloadData,size,0,size,pooledFrame,(GDestroyNotify)&ofxWebRTCAudioPool::relaseFrame);
 
-	/*GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
-	GstClockTime now = prevTimestamp + duration;
+	if(!audioAutoTimestamp){
+		GstClockTime duration = (pooledFrame->audioFrame._payloadDataLengthInSamples * GST_SECOND / pooledFrame->audioFrame._frequencyInHz);
+		GstClockTime now = prevTimestamp + duration;
 
-	GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
-	GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
-	GST_BUFFER_DTS (echoCancelledBuffer) = now;
-	GST_BUFFER_PTS (echoCancelledBuffer) = now;
-	GST_BUFFER_DURATION(echoCancelledBuffer) = duration;
-	prevTimestampAudio = now;*/
+		GST_BUFFER_OFFSET(echoCancelledBuffer) = numFrameAudio++;
+		GST_BUFFER_OFFSET_END(echoCancelledBuffer) = numFrameAudio;
+		GST_BUFFER_DTS (echoCancelledBuffer) = now;
+		GST_BUFFER_PTS (echoCancelledBuffer) = now;
+		GST_BUFFER_DURATION(echoCancelledBuffer) = duration;
+		prevTimestampAudio = now;
+	}
 
 
 	GstFlowReturn flow_return = gst_app_src_push_buffer((GstAppSrc*)appSrcAudio, echoCancelledBuffer);

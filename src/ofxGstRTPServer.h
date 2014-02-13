@@ -51,19 +51,19 @@ public:
 	/// use this version of setup when working with direct connection
 	/// to an specific IP and port
 	void setup(string destinationAddress);
-	void addVideoChannel(int port, int w, int h, int fps);
-	void addAudioChannel(int port);
-	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false);
-	void addOscChannel(int port);
+	void addVideoChannel(int port, int w, int h, int fps, bool autotimestamp=false);
+	void addAudioChannel(int port, bool autotimestamp=false);
+	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false, bool autotimestamp=false);
+	void addOscChannel(int port, bool autotimestamp=false);
 
 #if ENABLE_NAT_TRANSVERSAL
 	/// use this version of setup when working with NAT transversal
 	/// usually this will be done from ofxGstXMPPRTP
 	void setup();
-	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps);
-	void addAudioChannel(ofxNiceStream * niceStream);
-	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false);
-	void addOscChannel(ofxNiceStream * niceStream);
+	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool autotimestamp=false);
+	void addAudioChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
+	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false, bool autotimestamp=false);
+	void addOscChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
 #endif
 
 	void close();
@@ -180,6 +180,8 @@ private:
 
 	// rctp stats stream adjustment
 	int videoPacketsLost, depthPacketsLost;
+
+	bool videoAutoTimestamp, depthAutoTimestamp, audioAutoTimestamp, oscAutoTimestamp;
 };
 
 #endif /* OFXGSTRTPSERVER_H_ */
