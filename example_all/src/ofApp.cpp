@@ -150,6 +150,7 @@ void ofApp::exit(){
 void ofApp::update(){
 	{
 		kinect.update();
+		GstClockTime now = rtp.getServer().getTimeStamp();
 
 		if(kinect.isFrameNewVideo()){
 			fpsRGB.newFrame();
@@ -157,7 +158,7 @@ void ofApp::update(){
 
 			{
 				//kinectUpdater.signalNewKinectFrame();
-				rtp.getServer().newFrame(kinect.getPixelsRef());
+				rtp.getServer().newFrame(kinect.getPixelsRef(),now);
 			}
 
 		}
@@ -174,9 +175,9 @@ void ofApp::update(){
 			{
 				//kinectUpdater.signalNewKinectFrame();
 				if(depth16){
-					rtp.getServer().newFrameDepth(kinect.getRawDepthPixelsRef());
+					rtp.getServer().newFrameDepth(kinect.getRawDepthPixelsRef(),now);
 				}else{
-					rtp.getServer().newFrameDepth(kinect.getDepthPixelsRef());
+					rtp.getServer().newFrameDepth(kinect.getDepthPixelsRef(),now);
 				}
 			}
 
@@ -196,7 +197,7 @@ void ofApp::update(){
 						msg.addFloatArg(blob[i].y);
 					}
 				}
-				rtp.getServer().newOscMsg(msg);
+				rtp.getServer().newOscMsg(msg,now);
 			}
 
 			if(drawState==LocalPointCloud){

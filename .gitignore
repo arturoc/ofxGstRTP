@@ -3,3 +3,4 @@ example*/obj/**
 example*/bin/*
 !example*/bin/data
 example*/bin/data/settings.xml
+settings.xml

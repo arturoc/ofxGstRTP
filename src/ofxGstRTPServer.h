@@ -73,11 +73,12 @@ public:
 	void emitVideoKeyFrame();
 	void emitDepthKeyFrame();
 
-	void newFrame(ofPixels & pixels);
-	void newFrameDepth(ofPixels & pixels);
-	void newFrameDepth(ofShortPixels & pixels);
+	GstClockTime getTimeStamp();
 
-	void newOscMsg(ofxOscMessage & msg);
+	void newFrame(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+	void newFrameDepth(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+	void newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+	void newOscMsg(ofxOscMessage & msg, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
 
 	bool on_message(GstMessage * msg);
 

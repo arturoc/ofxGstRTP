@@ -640,7 +640,7 @@ void ofxGstRTPServer::on_new_ssrc_handler(GstBin *rtpbin, guint session, guint s
 
 void ofxGstRTPServer::update(ofEventArgs & args){
 	if(ofGetFrameNum()%60==0){
-		if(videoSSRC!=0 && videoSessionNumber!=-1){
+		if(videoSSRC!=0 && videoSessionNumber!=guint(-1)){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",videoSessionNumber,&internalSession,NULL);
 
@@ -706,7 +706,7 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 			}
 		}
 
-		if(depthSSRC!=0 && depthSessionNumber!=-1){
+		if(depthSSRC!=0 && depthSessionNumber!=guint(-1)){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",depthSessionNumber,&internalSession,NULL);
 
@@ -764,7 +764,7 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 			}
 		}
 
-		if(audioSSRC!=0 && audioSessionNumber!=-1){
+		if(audioSSRC!=0 && audioSessionNumber!=guint(-1)){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",audioSessionNumber,&internalSession,NULL);
 
@@ -817,7 +817,7 @@ void ofxGstRTPServer::update(ofEventArgs & args){
 			}
 		}
 
-		if(oscSSRC!=0 && oscSessionNumber!=-1){
+		if(oscSSRC!=0 && oscSessionNumber!=guint(-1)){
 			GObject * internalSession;
 			g_signal_emit_by_name(rtpbin,"get-internal-session",oscSessionNumber,&internalSession,NULL);
 
@@ -933,21 +933,18 @@ void ofxGstRTPServer::emitDepthKeyFrame(){
 
 }
 
-void ofxGstRTPServer::newFrame(ofPixels & pixels){
+void ofxGstRTPServer::newFrame(ofPixels & pixels, GstClockTime timestamp){
 	// here we push new video frames in the pipeline, it's important
 	// to timestamp them properly so gstreamer can sync them with the
 	// audio.
 
 	if(!bufferPool || !appSrcVideoRGB) return;
 
-	// get current time from the pipeline
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-	gst_object_ref(clock);
-	GstClockTime time = gst_clock_get_time (clock);
-	GstClockTime now =  time - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
-
+	GstClockTime now = timestamp;
 	if(!videoAutoTimestamp){
+		if(now==GST_CLOCK_TIME_NONE){
+			now = getTimeStamp();
+		}
 		if(firstVideoFrame){
 			prevTimestamp = now;
 			firstVideoFrame = false;
@@ -992,21 +989,18 @@ void ofxGstRTPServer::newFrame(ofPixels & pixels){
 }
 
 
-void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
+void ofxGstRTPServer::newFrameDepth(ofPixels & pixels, GstClockTime timestamp){
 	// here we push new depth frames in the pipeline, it's important
 	// to timestamp them properly so gstreamer can sync them with the
 	// audio.
 
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
-	// get current time from the pipeline
-
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-	gst_object_ref(clock);
-	GstClockTime time = gst_clock_get_time (clock);
-	GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
+	GstClockTime now = timestamp;
 	if(!depthAutoTimestamp){
+		if(now==GST_CLOCK_TIME_NONE){
+			now = getTimeStamp();
+		}
 
 		if(firstDepthFrame){
 			prevTimestampDepth = now;
@@ -1052,7 +1046,7 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels){
 }
 
 
-void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
+void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp){
 	//unsigned long long time = ofGetElapsedTimeMicros();
 
 	// here we push new depth frames in the pipeline, it's important
@@ -1061,13 +1055,11 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 
 	if(!bufferPoolDepth || !appSrcDepth) return;
 
-	// get current time from the pipeline
-
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
+	GstClockTime now = timestamp;
 	if(!depthAutoTimestamp){
+		if(now==GST_CLOCK_TIME_NONE){
+			now = getTimeStamp();
+		}
 
 		if(firstDepthFrame){
 			prevTimestampDepth = now;
@@ -1100,17 +1092,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 	}
 
 	if(sendDepthKeyFrame){
-		GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-		gst_object_ref(clock);
-		GstClockTime time = gst_clock_get_time (clock);
-		GstClockTime now = time - gst_element_get_base_time(gst.getPipeline());
-		gst_object_unref (clock);
-		GstEvent * keyFrameEvent = gst_video_event_new_downstream_force_key_unit(now,
-																 time,
-																 now,
-																 TRUE,
-																 0);
-		gst_element_send_event(gst.getPipeline(),keyFrameEvent);
+		emitDepthKeyFrame();
 	}
 
 	// finally push the buffer into the pipeline through the appsrc element
@@ -1123,17 +1105,14 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels){
 }
 
 
-void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
+void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg, GstClockTime timestamp){
 	if(!appSrcOsc) return;
 
-	// get current time from the pipeline
-
-	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
-
-	gst_object_ref(clock);
-	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
-	gst_object_unref (clock);
+	GstClockTime now = timestamp;
 	if(!oscAutoTimestamp){
+		if(now==GST_CLOCK_TIME_NONE){
+			now = getTimeStamp();
+		}
 
 		if(firstOscFrame){
 			prevTimestampOsc = now;
@@ -1163,6 +1142,15 @@ void ofxGstRTPServer::newOscMsg(ofxOscMessage & msg){
 	}
 }
 
+GstClockTime ofxGstRTPServer::getTimeStamp(){
+	if(!gst.isLoaded()) return GST_CLOCK_TIME_NONE;
+	GstClock * clock = gst_pipeline_get_clock(GST_PIPELINE(gst.getPipeline()));
+
+	gst_object_ref(clock);
+	GstClockTime now = gst_clock_get_time (clock) - gst_element_get_base_time(gst.getPipeline());
+	gst_object_unref (clock);
+	return now;
+}
 
 void ofxGstRTPServer::appendMessage( ofxOscMessage& message, osc::OutboundPacketStream& p )
 {
