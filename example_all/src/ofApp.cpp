@@ -348,7 +348,7 @@ void ofApp::draw(){
 		}
 
 		{
-			textureDepthRemote.draw(640,0);
+			textureDepthRemote.draw(640,0,640,480);
 			ofDrawBitmapString(ofToString(fpsClientDepth.getFPS(),2),660,20);
 		}
 
