@@ -3,6 +3,7 @@
 
 //========================================================================
 int main( ){
+	ofSetCurrentRenderer(ofGLProgrammableRenderer::TYPE);
 	ofSetupOpenGL(640*2+300,480,OF_WINDOW);			// <-------- setup the GL context
 
 	// this kicks off the running of my app

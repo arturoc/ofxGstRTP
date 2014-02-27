@@ -31,6 +31,7 @@ ofxGstXMPPRTP::ofxGstXMPPRTP()
 ,depthGathered(false)
 ,audioGathered(false)
 ,oscGathered(false)
+,depth16(false)
 {
 #ifndef TARGET_LINUX
     static bool plugins_registered = false;
@@ -116,7 +117,16 @@ void ofxGstXMPPRTP::acceptCall(){
 			}
 			depthStream->setup(nice,3);
 			nice.addStream(depthStream);
-			client.addDepthChannel(depthStream);
+			client.addDepthChannel(depthStream,false);
+		}else if(remoteJingle.contents[i].media=="depth16"){
+			ofLogNotice() << "adding depth16 channel to client";
+			if(!depthStream){
+				depthStream = new ofxNiceStream();
+				depthStream->setLogName("depth16");
+			}
+			depthStream->setup(nice,3);
+			nice.addStream(depthStream);
+			client.addDepthChannel(depthStream,true);
 		}else if(remoteJingle.contents[i].media=="audio"){
 			ofLogNotice() << "adding audio channel to client";
 			if(!audioStream){
@@ -153,6 +163,8 @@ void ofxGstXMPPRTP::acceptCall(){
 			stream = videoStream;
 		}else if(remoteJingle.contents[i].media=="depth"){
 			stream = depthStream;
+		}else if(remoteJingle.contents[i].media=="depth16"){
+			stream = depthStream;
 		}else if(remoteJingle.contents[i].media=="audio"){
 			stream = audioStream;
 		}else if(remoteJingle.contents[i].media=="osc"){
@@ -184,9 +196,13 @@ void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<o
 		content.payloads[0].id=97;
 		content.payloads[0].name="X-GST-OPUS-DRAFT-SPITTKA-00";
 	}else if(content.media=="depth"){
+			content.payloads[0].clockrate=90000;
+			content.payloads[0].id=98;
+			content.payloads[0].name="H264";
+	}else if(content.media=="depth16"){
 		content.payloads[0].clockrate=90000;
 		content.payloads[0].id=98;
-		content.payloads[0].name="H264";
+		content.payloads[0].name="X-GST";
 	}else if(content.media=="osc"){
 		content.payloads[0].clockrate=90000;
 		content.payloads[0].id=99;
@@ -225,6 +241,9 @@ void ofxGstXMPPRTP::onJingleInitiationAccepted(ofxXMPPJingleInitiation & jingle)
 			audioStream->setRemoteCredentials(jingle.contents[i].transport.ufrag,jingle.contents[i].transport.pwd);
 			audioStream->setRemoteCandidates(jingle.contents[i].transport.candidates);
 		}else if(jingle.contents[i].media=="depth" && depthStream){
+			depthStream->setRemoteCredentials(jingle.contents[i].transport.ufrag,jingle.contents[i].transport.pwd);
+			depthStream->setRemoteCandidates(jingle.contents[i].transport.candidates);
+		}else if(jingle.contents[i].media=="depth16" && depthStream){
 			depthStream->setRemoteCredentials(jingle.contents[i].transport.ufrag,jingle.contents[i].transport.pwd);
 			depthStream->setRemoteCandidates(jingle.contents[i].transport.candidates);
 		}else if(jingle.contents[i].media=="osc" && oscStream){
@@ -267,8 +286,13 @@ void ofxGstXMPPRTP::addSendVideoChannel(int w, int h, int fps){
 }
 
 void ofxGstXMPPRTP::addSendDepthChannel(int w, int h, int fps, bool depth16){
+	this->depth16 = depth16;
 	depthStream = new ofxNiceStream;
-	depthStream->setLogName("depth");
+	if(depth16){
+		depthStream->setLogName("depth16");
+	}else{
+		depthStream->setLogName("depth");
+	}
 	server.addDepthChannel(depthStream,w,h,fps,depth16);
 	ofAddListener(depthStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
@@ -309,7 +333,7 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	if(depthStream){
 		depthStream->setup(nice,3);
 		nice.addStream(depthStream);
-		client.addDepthChannel(depthStream);
+		client.addDepthChannel(depthStream,depth16);
 	}
 	if(oscStream){
 		oscStream->setup(nice,3);

@@ -240,7 +240,7 @@ void ofxGstRTPServer::addAudioChannel(int port, bool autotimestamp){
 
 		// opus encoder + opus pay
 		// FIXME: audio=0 is voice??
-		string aenc = "opusenc name=aencoder audio=0 ! rtpopuspay pt=98";
+		string aenc = "opusenc name=aencoder audio=0 ! rtpopuspay pt=97";
 
 	// audio rtpc
 		string artpsink;
@@ -284,18 +284,23 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 
 		// video format that we are pushing to the pipeline
 		string dcaps;
+		string dsource;
+		string denc;
 		if(depth16){
-			dcaps="video/x-raw,format=RGB,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
+			dcaps="application/x-compresseddepth ";//compresseddepth,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
+
+			dsource = delem + " ! " + dcaps;
+
+			denc = " rtpgstpay pt=98 ";
 		}else{
 			dcaps="video/x-raw,format=GRAY8,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1";
+
+			// queue so the conversion and encoding happen in a different thread to appsrc
+			dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
+
+			// h264 encoder + rtp pay
+			denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=superfast psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=98	 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
 		}
-
-		// queue so the conversion and encoding happen in a different thread to appsrc
-		string dsource= delem + " ! " + dcaps + " ! videoconvert name=dconvert1";
-
-		// h264 encoder + rtp pay
-		string denc="x264enc tune=zerolatency byte-stream=true bitrate="+ofToString(depthBitrate)+" speed-preset=superfast psy-tune=psnr me=4 subme=10 b-adapt=0 vbv-buf-capacity=600 name=dencoder ! video/x-h264,width="+ofToString(w)+ ",height="+ofToString(h)+",framerate="+ofToString(fps)+"/1 ! rtph264pay pt=97 ! application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
-
 	// depth rtpc
 	// ------------------
 		string drtpsink;
@@ -322,11 +327,11 @@ void ofxGstRTPServer::addDepthChannel(int port, int w, int h, int fps, bool dept
 		" " + drtpcsrc + " ! rtpbin.recv_rtcp_sink_" + ofToString(depthSessionNumber) + " ";
 
 	if(depth16){
-		bufferPoolDepth = new ofxGstBufferPool<unsigned char>(w,h,3);
+		depthCompressor.setup(w,h);
 	}else{
 		bufferPoolDepth = new ofxGstBufferPool<unsigned char>(w,h,1);
+		parameters.add(depthBitrate);
 	}
-	parameters.add(depthBitrate);
 }
 
 void ofxGstRTPServer::addOscChannel(int port, bool autotimestamp){
@@ -1046,14 +1051,14 @@ void ofxGstRTPServer::newFrameDepth(ofPixels & pixels, GstClockTime timestamp){
 }
 
 
-void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp){
+void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp, float pixel_size, float distance){
 	//unsigned long long time = ofGetElapsedTimeMicros();
 
 	// here we push new depth frames in the pipeline, it's important
 	// to timestamp them properly so gstreamer can sync them with the
 	// audio.
 
-	if(!bufferPoolDepth || !appSrcDepth) return;
+	if(!appSrcDepth) return;
 
 	GstClockTime now = timestamp;
 	if(!depthAutoTimestamp){
@@ -1067,15 +1072,13 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timesta
 			return;
 		}
 	}
-	// get a pixels buffer from the pool and copy the passed frame into it
-	PooledPixels<unsigned char> * pooledPixels = bufferPoolDepth->newBuffer();
-	ofxGstRTPUtils::convertShortToColoredDepth(pixels,*pooledPixels,pow(2.f,14.f));
 
-	// wrap the pooled pixels into a gstreamer buffer and pass the release
-	// callback so when it's not needed anymore by gst we can return it to the pool
-	GstBuffer * buffer;
-	buffer = gst_buffer_new_wrapped_full (GST_MEMORY_FLAG_READONLY,pooledPixels->getPixels(), pooledPixels->size(), 0, pooledPixels->size(), pooledPixels, (GDestroyNotify)&ofxGstBufferPool<unsigned char>::relaseBuffer);
-
+	ofxDepthCompressedFrame frame = depthCompressor.newFrame(pixels,pixel_size,distance);
+	GstBuffer * buffer = gst_buffer_new_allocate(NULL,frame.compressedData().size()*sizeof(short),NULL);
+	GstMapInfo mapinfo;
+	gst_buffer_map(buffer,&mapinfo,GST_MAP_WRITE);
+	memcpy(mapinfo.data,&frame.compressedData()[0],frame.compressedData().size()*sizeof(short));
+	gst_buffer_unmap(buffer,&mapinfo);
 	// timestamp the buffer, right now we are using:
 	// timestamp = current pipeline time - base time
 	// duration = timestamp - previousTimeStamp
@@ -1092,7 +1095,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timesta
 	}
 
 	if(sendDepthKeyFrame){
-		emitDepthKeyFrame();
+		//emitDepthKeyFrame();
 	}
 
 	// finally push the buffer into the pipeline through the appsrc element
@@ -1100,7 +1103,7 @@ void ofxGstRTPServer::newFrameDepth(ofShortPixels & pixels, GstClockTime timesta
 	if (flow_return != GST_FLOW_OK) {
 		ofLogError() << "error pushing depth buffer: flow_return was " << flow_return;
 	}
-
+	//cout << "sending depth buffer with " << pixels.getWidth() << "," << pixels.getHeight() << " csize: " << frame.compressedData().size() << endl;
 	//cout << ofGetElapsedTimeMicros() - time << endl;
 }
 

@@ -70,6 +70,9 @@ public:
 	ofPixels & getPixelsDepth();
 	ofShortPixels & getPixelsDepth16();
 	ofxOscMessage getOscMessage();
+	float getZeroPlanePixelSize();
+	float getZeroPlaneDistance();
+
 
 
 	ofParameter<int> latency;
@@ -178,7 +181,7 @@ private:
 
 	GstElement * vh264depay;
 	GstElement * opusdepay;
-	GstElement * dh264depay;
+	GstElement * depthdepay;
 	GstElement * gstdepay;
 
 	GstAppSink * videoSink;
@@ -203,6 +206,7 @@ private:
 
 	ofxGstVideoDoubleBuffer<unsigned char> doubleBufferVideo;
 	ofxGstVideoDoubleBuffer<unsigned char> doubleBufferDepth;
+	ofxGstVideoDoubleBuffer<unsigned short> doubleBufferDepth16;
 	ofxGstOscDoubleBuffer doubleBufferOsc;
 
 	bool depth16;

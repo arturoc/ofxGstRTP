@@ -76,6 +76,7 @@ private:
 	ofxNiceStream * oscStream;
 
 	bool videoGathered, depthGathered, audioGathered, oscGathered;
+	bool depth16;
 
 #if ENABLE_ECHO_CANCEL
 	ofxEchoCancel echoCancel;

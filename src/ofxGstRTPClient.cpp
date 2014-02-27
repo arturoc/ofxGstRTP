@@ -63,7 +63,7 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,rtpbin(0)
 ,vh264depay(0)
 ,opusdepay(0)
-,dh264depay(0)
+,depthdepay(0)
 ,gstdepay(0)
 ,videoSink(0)
 ,depthSink(0)
@@ -150,7 +150,7 @@ static string get_object_structure_property (GObject * object, const string & pr
 void ofxGstRTPClient::on_ssrc_active_handler(GstBin * rtpbin, guint session, guint ssrc, ofxGstRTPClient * rtpClient){
 	GObject * internalSession;
 	g_signal_emit_by_name(rtpbin,"get-internal-session",session,&internalSession,NULL);
-	ofLogVerbose(LOG_NAME) << "ssrc active " << G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(internalSession));
+	ofLogVerbose(LOG_NAME) << "ssrc active " << G_OBJECT_CLASS_NAME(G_OBJECT_GET_CLASS(internalSession)) << " for session " << session;
 
 	GObject * internalSource;
 	g_object_get (internalSession, "internal-source", &internalSource, NULL);
@@ -244,12 +244,12 @@ void ofxGstRTPClient::linkVideoPad(GstPad * pad){
 			latencyChanged(currentLatency);
 		}
 	}else{
-		ofLogError(LOG_NAME) << "couldn't get sink pad for h264 depay";
+		ofLogError(LOG_NAME) << "couldn't get sink pad for video depay";
 	}
 }
 
 void ofxGstRTPClient::linkDepthPad(GstPad * pad){
-	GstPad * sinkPad = gst_element_get_static_pad(dh264depay,"sink");
+	GstPad * sinkPad = gst_element_get_static_pad(depthdepay,"sink");
 	if(sinkPad){
 		if(gst_pad_link(pad,sinkPad)!=GST_PAD_LINK_OK){
 			ofLogError(LOG_NAME) << "couldn't link rtp source pad to depth depay";
@@ -261,7 +261,7 @@ void ofxGstRTPClient::linkDepthPad(GstPad * pad){
 			latencyChanged(currentLatency);
 		}
 	}else{
-		ofLogError(LOG_NAME) << "couldn't get sink pad for h264 depay";
+		ofLogError(LOG_NAME) << "couldn't get sink pad for depth depay";
 	}
 }
 
@@ -540,43 +540,70 @@ void ofxGstRTPClient::createDepthChannel(string rtpCaps, bool depth16){
 	// create and add depth elements and connect them to the correct pad.
 	// depth pipeline to be connected to the corresponding recv_rtp_send pad:
 	// rtph264depay ! avdec_h264 ! videoconvert ! appsink
-	dh264depay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
 
-	GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
-	GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
-	depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
+	if(!depth16){
+		depthdepay = gst_element_factory_make("rtph264depay","rtph264depay_depth");
 
-	// set format for depth appsink to gray 8bits
-	GstCaps * caps;
+		GstElement * avdec_h264 = gst_element_factory_make("avdec_h264","avdec_h264_depth");
+		GstElement * vconvert = gst_element_factory_make("videoconvert","dconvert");
+		depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
 
-	if(depth16){
-		caps = gst_caps_new_simple("video/x-raw",
-				"format",G_TYPE_STRING,"RGB",
-				NULL);
+		// set format for depth appsink to gray 8bits
+		GstCaps * caps = gst_caps_new_simple("video/x-raw",
+					"format",G_TYPE_STRING,"GRAY8",
+					NULL);
+		if(!caps){
+			ofLogError(LOG_NAME) << "couldn't get caps";
+		}else{
+			gst_app_sink_set_caps(depthSink,caps);
+			gst_caps_unref(caps);
+		}
+
+		// set callbacks to receive depth data
+		GstAppSinkCallbacks gstCallbacks;
+		gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_depth;
+		gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_depth;
+		gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_depth;
+		gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
+		gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
+
+		// add elements to the pipeline and link them (but not yet to the rtpbin)
+		gst_bin_add_many(GST_BIN(pipeline), depthdepay, avdec_h264, vconvert, depthSink, NULL);
+		if(!gst_element_link_many(depthdepay, avdec_h264, vconvert, depthSink, NULL)){
+			ofLogError(LOG_NAME) << "couldn't link depth elements";
+		}
 	}else{
-		caps = gst_caps_new_simple("video/x-raw",
-				"format",G_TYPE_STRING,"GRAY8",
-				NULL);
-	}
-	if(!caps){
-		ofLogError(LOG_NAME) << "couldn't get caps";
-	}else{
-		gst_app_sink_set_caps(depthSink,caps);
-		gst_caps_unref(caps);
-	}
+		depthdepay = gst_element_factory_make("rtpgstdepay","rtpgstdepay_depth");
+		depthSink = (GstAppSink*)gst_element_factory_make("appsink","depthsink");
 
-	// set callbacks to receive depth data
-	GstAppSinkCallbacks gstCallbacks;
-	gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_depth;
-	gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_depth;
-	gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_depth;
-	gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
-	gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
 
-	// add elements to the pipeline and link them (but not yet to the rtpbin)
-	gst_bin_add_many(GST_BIN(pipeline), dh264depay, avdec_h264, vconvert, depthSink, NULL);
-	if(!gst_element_link_many(dh264depay, avdec_h264, vconvert, depthSink, NULL)){
-		ofLogError(LOG_NAME) << "couldn't link depth elements";
+		// set format for depth appsink to osc
+		GstCaps * caps;
+
+		caps = gst_caps_new_empty_simple("application/x-compresseddepth");
+
+		if(!caps){
+			ofLogError(LOG_NAME) << "couldn't get caps";
+		}else{
+			gst_app_sink_set_caps(depthSink,caps);
+			gst_caps_unref(caps);
+		}
+
+
+		// set callbacks to receive osc data
+		GstAppSinkCallbacks gstCallbacks;
+		gstCallbacks.eos = &ofxGstRTPClient::on_eos_from_depth;
+		gstCallbacks.new_preroll = &ofxGstRTPClient::on_new_preroll_from_depth;
+		gstCallbacks.new_sample = &ofxGstRTPClient::on_new_buffer_from_depth;
+		gst_app_sink_set_callbacks(GST_APP_SINK(depthSink), &gstCallbacks, this, NULL);
+		gst_app_sink_set_emit_signals(GST_APP_SINK(depthSink),0);
+
+		// add elements to the pipeline and link them (but not yet to the rtpbin)
+		gst_bin_add_many(GST_BIN(pipeline), depthdepay, depthSink, NULL);
+		if(!gst_element_link_many(depthdepay, GST_ELEMENT(depthSink), NULL)){
+			ofLogError(LOG_NAME) << "couldn't link depth16 elements";
+		}
+
 	}
 }
 
@@ -655,7 +682,12 @@ void ofxGstRTPClient::addDepthChannel(int port, bool depth16){
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
-	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1";
+	string dcaps;
+	if(!depth16){
+		dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1";
+	}else{
+		dcaps="application/x-rtp,media=(string)application,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)X-GST,caps=(string)\"YXBwbGljYXRpb24veC1vc2M\\=\"";
+	}
 
 	createDepthChannel(dcaps,depth16);
 
@@ -684,7 +716,7 @@ void ofxGstRTPClient::addAudioChannel(int port){
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
-	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)98,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
+	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)97,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
 
 	createAudioChannel(acaps);
 
@@ -769,7 +801,7 @@ void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
-	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)97,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
+	string acaps="application/x-rtp,media=(string)audio,clock-rate=(int)48000,payload=(int)98,encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00";
 
 	createAudioChannel(acaps);
 
@@ -795,7 +827,13 @@ void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, bool depth16){
 	// FIXME: This is usually negotiated out of band with
 	// SDP or RTSP. normally these caps will also include SPS and PPS but we don't
 	// have that yet
-	string dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)98,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1 ";
+	string dcaps;
+	if(!depth16){
+		dcaps="application/x-rtp,media=(string)video,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)H264,rtcp-fb-nack-pli=(int)1";
+	}else{
+		dcaps="application/x-rtp,media=(string)application,clock-rate=(int)90000,payload=(int)97,encoding-name=(string)X-GST,caps=(string)\"YXBwbGljYXRpb24veC1jb21wcmVzc2VkZGVwdGg\\=\"";
+	}
+
 
 	createDepthChannel(dcaps,depth16);
 
@@ -902,7 +940,7 @@ void ofxGstRTPClient::close(){
 	rtpbin = 0;
 	vh264depay = 0;
 	opusdepay = 0;
-	dh264depay = 0;
+	depthdepay = 0;
 	gstdepay = 0;
 	videoSink = 0;
 	depthSink = 0;
@@ -997,7 +1035,11 @@ void ofxGstRTPClient::play(){
 
 void ofxGstRTPClient::update(){
 	doubleBufferVideo.update();
-	doubleBufferDepth.update();
+	if(depth16){
+		doubleBufferDepth16.update();
+	}else{
+		doubleBufferDepth.update();
+	}
 	doubleBufferOsc.update();
 	if(depth16 && doubleBufferDepth.isFrameNew()){
 		ofxGstRTPUtils::convertColoredDepthToShort(doubleBufferDepth.getPixels(),depth16Pixels,pow(2.f,14.f));
@@ -1011,7 +1053,12 @@ bool ofxGstRTPClient::isFrameNewVideo(){
 
 
 bool ofxGstRTPClient::isFrameNewDepth(){
-	return doubleBufferDepth.isFrameNew();
+	if(depth16){
+		return doubleBufferDepth16.isFrameNew();
+
+	}else{
+		return doubleBufferDepth.isFrameNew();
+	}
 }
 
 bool ofxGstRTPClient::isFrameNewOsc(){
@@ -1028,8 +1075,17 @@ ofPixels & ofxGstRTPClient::getPixelsDepth(){
 }
 
 ofShortPixels & ofxGstRTPClient::getPixelsDepth16(){
-	return depth16Pixels;
+	return doubleBufferDepth16.getPixels();
 }
+
+float ofxGstRTPClient::getZeroPlanePixelSize(){
+	return doubleBufferDepth16.getZeroPlanePixelSize();
+}
+
+float ofxGstRTPClient::getZeroPlaneDistance(){
+	return doubleBufferDepth16.getZeroPlaneDistance();
+}
+
 
 
 void appendMessage(ofxOscMessage & ofMessage, osc::ReceivedMessage & m){
@@ -1224,25 +1280,32 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt, void *
 }
 
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt){
+	cout << "depth buffer" << endl;
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
 
-	if(!doubleBufferDepth.isAllocated()){
+	if(!depth16 && !doubleBufferDepth.isAllocated()){
 		GstCaps * sampleCaps = gst_sample_get_caps(sample);
 		if(sampleCaps){
 			GstVideoInfo sampleInfo;
 			if(gst_video_info_from_caps(&sampleInfo,sampleCaps)){
-				if(depth16){
-					doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,3);
-					depth16Pixels.allocate(sampleInfo.width , sampleInfo.height,1);
-				}else{
-					doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,1);
-				}
+				doubleBufferDepth.setup(sampleInfo.width , sampleInfo.height,1);
 			}
 		}
 	}
 
-	if(doubleBufferDepth.isAllocated()){
-		doubleBufferDepth.newSample(sample);
+	if(depth16 && !doubleBufferDepth16.isAllocated()){
+		doubleBufferDepth16.setupFor16();
+	}
+
+	if(!depth16){
+		if(doubleBufferDepth.isAllocated()){
+			doubleBufferDepth.newSample(sample);
+		}
+	}else{
+		if(doubleBufferDepth16.isAllocated()){
+			doubleBufferDepth16.newSample(sample);
+		}
+
 	}
 	return GST_FLOW_OK;
 }

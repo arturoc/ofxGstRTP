@@ -19,6 +19,8 @@
 #include "ofxOsc.h"
 #include "ofxOscPacketPool.h"
 
+#include "ofxDepthStreamCompression.h"
+
 #if ENABLE_NAT_TRANSVERSAL
 	#include "ofxNice.h"
 	#include "ofxXMPP.h"
@@ -77,7 +79,7 @@ public:
 
 	void newFrame(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
 	void newFrameDepth(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
-	void newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+	void newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE, float pixel_size=1, float distance=1);
 	void newOscMsg(ofxOscMessage & msg, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
 
 	bool on_message(GstMessage * msg);
@@ -178,6 +180,7 @@ private:
 	void sendAudioOut(PooledAudioFrame * pooledFrame);
 #endif
 
+	ofxDepthStreamCompression depthCompressor;
 
 	// rctp stats stream adjustment
 	int videoPacketsLost, depthPacketsLost;

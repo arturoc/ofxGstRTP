@@ -1,6 +1,6 @@
 #include "ofApp.h"
 #include "ofxGstRTPUtils.h"
-//#define USE_16BIT_DEPTH
+#define USE_16BIT_DEPTH
 
 #ifdef USE_16BIT_DEPTH
 	bool depth16=true;
@@ -44,20 +44,35 @@ void ofApp::setup(){
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);
-	rtp.addSendDepthChannel(640,480,30);
+	if(depth16){
+		rtp.addSendDepthChannel(160,120,30,depth16);
+	}else{
+		rtp.addSendDepthChannel(640,480,30,depth16);
+	}
 	rtp.addSendOscChannel();
 	rtp.addSendAudioChannel();
-
-	shaderRemoveZero.setupShaderFromSource(GL_VERTEX_SHADER,vertexShader);
-	shaderRemoveZero.linkProgram();
-
 
 
 	kinect.init();
 	kinect.setRegistration(true);
-	kinect.open();
+	bool kinectOpen = kinect.open();
 
-	kinect.setDepthClipping(500,1000);
+	//kinect.setDepthClipping(500,1000);
+
+	shader.load("shader.vert","shader.frag","shader.geom");
+	shader.begin();
+	if(kinectOpen){
+		zeroPPixelSize = kinect.getZeroPlanePixelSize();
+		zeroPDistance = kinect.getZeroPlaneDistance();
+	}else{
+		zeroPPixelSize = 0.1042;
+		zeroPDistance = 120;
+	}
+	shader.setUniform1f("ref_pix_size",zeroPPixelSize);
+	shader.setUniform1f("ref_distance",zeroPDistance);
+	shader.setUniform1f("SCALE_UP",4);
+	shader.setUniform1f("max_distance",500);
+	shader.end();
 
 	gui.setup("","settings.xml",ofGetWidth()-250,10);
 	gui.add(rtp.parameters);
@@ -66,34 +81,63 @@ void ofApp::setup(){
 	textureVideoLocal.allocate(640,480,GL_RGB8);
 
 	if(depth16){
-		textureDepthRemote.allocate(640,480,GL_RGB8);
-		textureDepthLocal.allocate(640,480,GL_LUMINANCE16);
+		textureDepthRemote.allocate(160,120,GL_R16);
+		textureDepthLocal.allocate(160,120,GL_R16);
 	}else{
-		textureDepthRemote.allocate(640,480,GL_LUMINANCE8);
-		textureDepthLocal.allocate(640,480,GL_LUMINANCE8);
+		textureDepthRemote.allocate(640,480,GL_R8);
+		textureDepthLocal.allocate(640,480,GL_R8);
 	}
+	textureDepthRemote.setRGToRGBASwizzles(true);
+	textureDepthLocal.setRGToRGBASwizzles(true);
+	resizedDepth.allocate(160,120,1);
 
 	drawState = LocalRemote;
 
-	pointCloud.setMode(OF_PRIMITIVE_POINTS);
-	pointCloud.getVertices().resize(640*480);
-	pointCloud.getTexCoords().resize(640*480);
-	pointCloud.setUsage(GL_STREAM_DRAW);
-	int i=0;
-	for(int y=0;y<480;y++){
-		for(int x=0;x<640;x++){
-			pointCloud.getTexCoords()[i].set(x,y);
-			pointCloud.getVertices()[i++].set(x,y);
+	if(depth16){
+		pointCloud.getVertices().resize(160*120);
+		pointCloud.getTexCoords().resize(160*120);
+		pointCloud.setUsage(GL_STREAM_DRAW);
+		int i=0;
+		for(int y=0;y<120;y++){
+			for(int x=0;x<160;x++){
+				pointCloud.getTexCoords()[i].set(x*4,y*4);
+				pointCloud.getVertices()[i++].set(x,y);
+			}
+		}
+		for (int y=0;y<120;y++){
+			for (int x=0;x<160;x++){
+				pointCloud.addIndex(y*160+x+1);
+				pointCloud.addIndex(y*160+x);
+				pointCloud.addIndex((y+1)*160+x);
+
+				pointCloud.addIndex((y+1)*160+x);
+				pointCloud.addIndex((y+1)*160+x+1);
+				pointCloud.addIndex(y*160+x+1);
+			}
+		}
+	}else{
+		pointCloud.setMode(OF_PRIMITIVE_POINTS);
+		pointCloud.getVertices().resize(640*480);
+		pointCloud.getTexCoords().resize(640*480);
+		pointCloud.setUsage(GL_STREAM_DRAW);
+		int i=0;
+		for(int y=0;y<480;y++){
+			for(int x=0;x<640;x++){
+				pointCloud.getTexCoords()[i].set(x,y);
+				pointCloud.getVertices()[i++].set(x,y);
+			}
 		}
 	}
 
 	//ofSetBackgroundAuto(false);
 
 	if(depth16){
-		ofxGstRTPUtils::CreateColorGradientLUT(pow(2.f,14.f));
+		//ofxGstRTPUtils::CreateColorGradientLUT(pow(2.f,14.f));
 	}
 
-	camera.setVFlip(true);
+	//camera.setVFlip(true);
+
+	camera.setTarget(ofVec3f(0.0,0.0,-1000.0));
 
 	gray.allocate(640,480);
 
@@ -165,9 +209,12 @@ void ofApp::update(){
 
 		if(kinect.isFrameNewDepth()){
 			fpsDepth.newFrame();
+			if(depth16){
+				kinect.getRawDepthPixelsRef().resizeTo(resizedDepth,OF_INTERPOLATE_NEAREST_NEIGHBOR);
+			}
 
 			if(depth16){
-				textureDepthLocal.loadData(kinect.getRawDepthPixelsRef());
+				textureDepthLocal.loadData(kinect.getRawDepthPixelsRef(),GL_RED);
 			}else{
 				textureDepthLocal.loadData(kinect.getDepthPixelsRef());
 			}
@@ -175,7 +222,7 @@ void ofApp::update(){
 			{
 				//kinectUpdater.signalNewKinectFrame();
 				if(depth16){
-					rtp.getServer().newFrameDepth(kinect.getRawDepthPixelsRef(),now);
+					rtp.getServer().newFrameDepth(resizedDepth,now,zeroPPixelSize,zeroPDistance);
 				}else{
 					rtp.getServer().newFrameDepth(kinect.getDepthPixelsRef(),now);
 				}
@@ -201,11 +248,21 @@ void ofApp::update(){
 			}
 
 			if(drawState==LocalPointCloud){
-				int i=0;
-				for(int y=0;y<480;y++){
-					for(int x=0;x<640;x++){
-						pointCloud.getVertices()[i].set(kinect.getWorldCoordinateAt(x,y,kinect.getRawDepthPixelsRef()[i]));
-						i++;
+				if(depth16){
+					int i=0;
+					for(int y=0;y<120;y++){
+						for(int x=0;x<160;x++){
+							pointCloud.getVertices()[i].z = resizedDepth[i];
+							i++;
+						}
+					}
+				}else{
+					int i=0;
+					for(int y=0;y<480;y++){
+						for(int x=0;x<640;x++){
+							pointCloud.getVertices()[i].set(kinect.getWorldCoordinateAt(x,y,kinect.getRawDepthPixelsRef()[i]));
+							i++;
+						}
 					}
 				}
 			}
@@ -221,14 +278,18 @@ void ofApp::update(){
 		}
 		if(rtp.getClient().isFrameNewDepth()){
 			fpsClientDepth.newFrame();
-			textureDepthRemote.loadData(rtp.getClient().getPixelsDepth());
+			if(depth16){
+				textureDepthRemote.loadData(rtp.getClient().getPixelsDepth16());
+			}else{
+				textureDepthRemote.loadData(rtp.getClient().getPixelsDepth());
+			}
 
 			if(depth16){
 				if(drawState==RemotePointCloud){
 					int i=0;
-					for(int y=0;y<480;y++){
-						for(int x=0;x<640;x++){
-							pointCloud.getVertices()[i].set(kinect.getWorldCoordinateAt(x,y,rtp.getClient().getPixelsDepth16()[i]));
+					for(int y=0;y<120;y++){
+						for(int x=0;x<160;x++){
+							pointCloud.getVertices()[i].z = rtp.getClient().getPixelsDepth16()[i];
 							i++;
 						}
 					}
@@ -302,36 +363,40 @@ void ofApp::draw(){
 		}
 		break;
 	case RemotePointCloud:
-		if(rtp.getClient().isFrameNewDepth()){
-			ofBackground(255);
+		//if(rtp.getClient().isFrameNewDepth()){
+			ofBackground(0);
 			ofSetColor(255);
 			ofEnableDepthTest();
-			shaderRemoveZero.begin();
-			shaderRemoveZero.setUniform1f("removeFar",1);
+			shader.begin();
+			shader.setUniform1f("ref_pix_size",rtp.getClient().getZeroPlanePixelSize());
+			shader.setUniform1f("ref_distance",rtp.getClient().getZeroPlaneDistance());
+			cout << rtp.getClient().getZeroPlanePixelSize() << endl;
+			cout << rtp.getClient().getZeroPlaneDistance() << endl;
 			camera.begin();
 			textureVideoRemote.bind();
-			pointCloud.draw();
+			pointCloud.drawWireframe();
 			textureVideoRemote.unbind();
 			camera.end();
-			shaderRemoveZero.end();
+			shader.end();
 			ofDisableDepthTest();
-		}
+		//}
 		break;
 	case LocalPointCloud:
-		if(kinect.isFrameNewDepth()){
-			ofBackground(255);
+		//if(kinect.isFrameNewDepth()){
+			ofBackground(0);
 			ofSetColor(255);
 			ofEnableDepthTest();
-			shaderRemoveZero.begin();
-			shaderRemoveZero.setUniform1f("removeFar",0);
+			shader.begin();
+			shader.setUniform1f("ref_pix_size",zeroPPixelSize);
+			shader.setUniform1f("ref_distance",zeroPDistance);
 			camera.begin();
 			textureVideoLocal.bind();
-			pointCloud.draw();
+			pointCloud.drawWireframe();
 			textureVideoLocal.unbind();
 			camera.end();
-			shaderRemoveZero.end();
+			shader.end();
 			ofDisableDepthTest();
-		}
+		//}
 		break;
 	}
 

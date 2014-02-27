@@ -61,7 +61,7 @@ class ofApp : public ofBaseApp{
 			NumStates
 		}drawState;
 
-		ofShader shaderRemoveZero;
+		ofShader shader;
 
 		ofxCvGrayscaleImage gray;
 		ofxCvContourFinder contourFinder;
@@ -87,4 +87,8 @@ class ofApp : public ofBaseApp{
 		ofSoundPlayer ring;
 		unsigned long long lastRing;
 		ofRectangle ok,cancel;
+
+		ofShortPixels resizedDepth;
+
+		float zeroPPixelSize,zeroPDistance;
 };
