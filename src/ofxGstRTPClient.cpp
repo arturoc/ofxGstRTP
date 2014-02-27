@@ -1280,7 +1280,6 @@ GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt, void *
 }
 
 GstFlowReturn ofxGstRTPClient::on_new_buffer_from_depth(GstAppSink * elt){
-	cout << "depth buffer" << endl;
 	GstSample *sample = gst_app_sink_pull_sample (GST_APP_SINK (elt));
 
 	if(!depth16 && !doubleBufferDepth.isAllocated()){

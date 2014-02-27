@@ -370,8 +370,6 @@ void ofApp::draw(){
 			shader.begin();
 			shader.setUniform1f("ref_pix_size",rtp.getClient().getZeroPlanePixelSize());
 			shader.setUniform1f("ref_distance",rtp.getClient().getZeroPlaneDistance());
-			cout << rtp.getClient().getZeroPlanePixelSize() << endl;
-			cout << rtp.getClient().getZeroPlaneDistance() << endl;
 			camera.begin();
 			textureVideoRemote.bind();
 			pointCloud.drawWireframe();
