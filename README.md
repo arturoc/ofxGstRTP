@@ -15,9 +15,8 @@ This addon also depends on gstreamer, in linux it's installed by default as part
 
 ## Running the examples
 
-- This is based on openFramewors master (2013.09.01), so you'll need to use latest master from github or a [nightly build](http://www.openframeworks.cc/nightlybuilds.html)
+- This is based on openFramewors master (2014.02.27), so you'll need to use latest master from github or a [nightly build](http://www.openframeworks.cc/nightlybuilds.html) To generate the projects correctly you'll also need the latest version of the PG as of 2014.02.27
 
 - Almost all examples contain a settings_example.xml file that needs to be renamed to settings.xml and modified with the correct settings.
 
-- The H264 encoder is not emmiting key frames on a predefined time to make the stream lighter, at some point i'll add a detection of a connection through the rtpc elements and make the h264 encoder emit a keyframe since the other end won't be able to decode the stream until a keyframe arrives. By now when the connection starts there needs to be some movement in the image so the h264 encoder generates a key frame.
 
