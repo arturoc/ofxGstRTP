@@ -392,7 +392,7 @@ void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream, bool autotimes
 
 void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16, bool autotimestamp){
 	depthStream = niceStream;
-	depthAutoTimestamp = depthAutoTimestamp;
+	depthAutoTimestamp = autotimestamp;
 	addDepthChannel(0,w,h,fps,depth16,autotimestamp);
 }
 
