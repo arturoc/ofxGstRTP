@@ -13,6 +13,8 @@
 #include "OscReceivedElements.h"
 #include "ofTypes.h"
 
+/// class used internally by the addon to implement a
+/// double buffer for received osc messages
 class ofxGstOscDoubleBuffer {
 public:
 	ofxGstOscDoubleBuffer();

@@ -14,6 +14,7 @@
 
 #include <gst/gstsample.h>
 
+/// class used internally to keep a double buffer for video and depth frames
 template<typename PixelType>
 class ofxGstVideoDoubleBuffer {
 public:

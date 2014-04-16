@@ -29,6 +29,11 @@
 #include "ofxWebRTCAudioPool.h"
 #endif
 
+
+/// Client part implementing the RTP protocol. Allows to receive audio,
+/// video, depth and metadata through osc from a remote peer. All the channels
+/// will be synchronized and the communication can be started specifying the
+/// ip and port of the remote side or using ofxNice streams.
 class ofxGstRTPClient: public ofGstAppSink {
 public:
 	ofxGstRTPClient();
@@ -41,16 +46,37 @@ public:
 
 
 	/// use this version of setup when working with direct connection
-	/// to an specific IP and port
+	/// to an specific IP and port, usually in LANs when there's no need
+	/// for NAT transversal.
+	/// the latency parameter specifies a latency in milliseconds so the client
+	/// buffers the received data to make the conection more reliable. The latency
+	/// can be adjusted afterwards, but this will be the maximum latency the client can
+	/// set later
 	void setup(string srcIP, int latency);
+
+	/// add an audio channel receiving in a specific port, has to be the same port
+	/// specified in the server. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
 	void addAudioChannel(int port);
+	/// add an video channel receiving in a specific port. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
 	void addVideoChannel(int port);
+	/// add an depth channel receiving in a specific port. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
 	void addDepthChannel(int port, bool depth16=false);
+	/// add an osc channel receiving in a specific port. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
 	void addOscChannel(int port);
 
 #if ENABLE_NAT_TRANSVERSAL
 	/// use this version of setup when working with NAT transversal
-	/// usually this will be done from ofxGstXMPPRTP
+	/// usually this will be done from ofxGstXMPPRTP which also controls
+	/// all the workflow of the session initiation as well as creating
+	/// the corresponging ICE streams and agent
 	void setup(int latency);
 	void addAudioChannel(ofxNiceStream * niceStream);
 	void addVideoChannel(ofxNiceStream * niceStream);
@@ -58,25 +84,52 @@ public:
 	void addOscChannel(ofxNiceStream * niceStream);
 #endif
 
+	/// close the current connection
 	void close();
 
+	/// starts the gstreamer pipeline
 	void play();
+
+	/// update the pipeline and receive any available buffers
 	void update();
+
+	/// returns true if there's a new video frame after calling update
 	bool isFrameNewVideo();
+
+	/// returns true if there's a new depth frame after calling update
 	bool isFrameNewDepth();
+
+	/// returns true if there's a new osc frame after calling update
 	bool isFrameNewOsc();
 
+	/// get the pixels for the last frame received for the video channel
 	ofPixels & getPixelsVideo();
+	/// get the pixels for the last frame received for the depth channel
 	ofPixels & getPixelsDepth();
+	/// get the pixels for the last frame received for the depth channel 16bits
 	ofShortPixels & getPixelsDepth16();
+	/// get the pixels for the last frame received for the osc channel
 	ofxOscMessage getOscMessage();
+	/// get the zero plane pixel size, of the remote peer, used to undistort the
+	/// received point cloud
 	float getZeroPlanePixelSize();
+	/// get the zero plane distance of the remote peer, used to undistort the
+	/// received point cloud
 	float getZeroPlaneDistance();
 
 
 
+	/// this paramter adjusts the latency on the client side to a maximum of the
+	/// value set in setup
 	ofParameter<int> latency;
+
+	/// sets if the client should drop frames or accumulate them in a buffer,
+	/// if the application doens't read fast enough this can cause a grow in memory
+	/// but dropping frames can have the effect of dropping a key frame leading to
+	/// glitches in the video and depth streams
 	ofParameter<bool> drop;
+
+	/// groups all the parameters of this class
 	ofParameterGroup parameters;
 
 	static string LOG_NAME;

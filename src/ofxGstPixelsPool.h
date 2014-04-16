@@ -16,7 +16,7 @@
 template<typename PixelType>
 class ofxGstBufferPool;
 
-// ofPixels stored in a pool so we don't need to allocate memory for every buffer
+/// ofPixels stored in a pool so we don't need to allocate memory for every buffer
 template<typename PixelType>
 class PooledPixels: public ofPixels_<PixelType>{
 public:
@@ -24,10 +24,11 @@ public:
 };
 
 
-// pixels pool: ofPixels copies are allocated if the pool is empty
-// if not we just get one from the pool. When a buffer is not needed anymore
-// gstreamer calls the passed function which instead of deleting them
-// will return them to the pool they belong
+/// pixels pool: ofPixels copies are allocated if the pool is empty
+/// if not we just get one from the pool. When a buffer is not needed anymore
+/// gstreamer calls the passed function which instead of deleting them
+/// will return them to the pool they belong
+/// Used internally by the addon to avoid allocation every frame
 template<typename PixelType>
 class ofxGstBufferPool{
 public:

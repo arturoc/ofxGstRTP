@@ -15,6 +15,9 @@
 
 class ofxOscPacketPool;
 
+/// osc packet that can be returned to a pool to avoid
+/// allocations when sending new osc messages. It also
+/// can compress the data of each message
 class PooledOscPacket{
 public:
 	PooledOscPacket(char *buffer, unsigned long capacity, ofxOscPacketPool * pool)
@@ -52,6 +55,8 @@ private:
 	size_t compressedBytes;
 };
 
+/// OSC messages pool, used internally by the addon to avoid
+/// doing allocations every frame
 class ofxOscPacketPool {
 public:
 	ofxOscPacketPool();

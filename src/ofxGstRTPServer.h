@@ -38,6 +38,10 @@ template<typename PixelType>
 class ofxGstBufferPool;
 
 
+/// Server part implementing RTP. Allows to send audio, video, depth
+/// and metadata through osc to a remote peer. All the channels
+/// will be synchronized and the communication can be started specifying the
+/// ip and port of the remote side or using ofxNice streams.
 class ofxGstRTPServer: public ofGstAppSink {
 public:
 	ofxGstRTPServer();
@@ -51,16 +55,47 @@ public:
 #endif
 
 	/// use this version of setup when working with direct connection
-	/// to an specific IP and port
+	/// to an specific IP and port, usually in LANs when there's no need
+	/// for NAT transversal.
 	void setup(string destinationAddress);
+
+	/// add a video channel sending from a specific port, has to be the same port
+	/// specified in the client. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
+	/// autotimestamp, specifies if the gstreamer will create timestamps automatically (true)
+	/// or we want to generate them internally or externally (false)
 	void addVideoChannel(int port, int w, int h, int fps, bool autotimestamp=false);
+
+	/// add an audio channel sending from a specific port, has to be the same port
+	/// specified in the client. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
+	/// autotimestamp, specifies if the gstreamer will create timestamps automatically (true)
+	/// or we want to generate them internally or externally (false)
 	void addAudioChannel(int port, bool autotimestamp=false);
+
+	/// add a depth channel sending from a specific port, has to be the same port
+	/// specified in the client. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
+	/// autotimestamp, specifies if the gstreamer will create timestamps automatically (true)
+	/// or we want to generate them internally or externally (false)
 	void addDepthChannel(int port, int w, int h, int fps, bool depth16=false, bool autotimestamp=false);
+
+	/// add an osc channel sending from a specific port, has to be the same port
+	/// specified in the client. Ports for the different channels will really occupy
+	/// the next 5 ports so if we specify 3000, 3000-3005 will be used and shouldn't
+	/// be specified for other channel
+	/// autotimestamp, specifies if the gstreamer will create timestamps automatically (true)
+	/// or we want to generate them internally or externally (false)
 	void addOscChannel(int port, bool autotimestamp=false);
 
 #if ENABLE_NAT_TRANSVERSAL
 	/// use this version of setup when working with NAT transversal
-	/// usually this will be done from ofxGstXMPPRTP
+	/// usually this will be done from ofxGstXMPPRTP which also controls
+	/// all the workflow of the session initiation as well as creating
+	/// the corresponging ICE streams and agent
 	void setup();
 	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool autotimestamp=false);
 	void addAudioChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
@@ -68,31 +103,67 @@ public:
 	void addOscChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
 #endif
 
+	/// close the current connection
 	void close();
 
+	/// starts the gstreamer pipeline
 	void play();
 
+	/// generate a keyframe on the video stream, used by other parts of the
+	/// addon to avoid glitches when some packages are lost
 	void emitVideoKeyFrame();
+
+	/// generate a keyframe on the depth stream, used by other parts of the
+	/// addon to avoid glitches when some packages are lost
 	void emitDepthKeyFrame();
 
+	/// ofxGstRTPServer will generate timestamps for every channel if the
+	/// corresponding newFrame* method is called with timestamp = GST_CLOCK_TIME_NONE
+	/// In some cases is better to get a timestamp each update and use that for
+	/// every channel to improve sync
 	GstClockTime getTimeStamp();
 
+	/// Should be called when there's a new video frame, if timestamp is not
+	/// specified, will generate one internally
 	void newFrame(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+
+	/// Should be called when there's a new depth frame, if timestamp is not
+	/// specified, will generate one internally
 	void newFrameDepth(ofPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
+
+	/// Should be called when there's a new 16bits depth frame, if timestamp is not
+	/// specified, will generate one internally
+	/// pixel_size and distance are the calibration parameter from the kinect
 	void newFrameDepth(ofShortPixels & pixels, GstClockTime timestamp=GST_CLOCK_TIME_NONE, float pixel_size=1, float distance=1);
+
+	/// Should be called when there's a new osc message, if timestamp is not
+	/// specified, will generate one internally
 	void newOscMsg(ofxOscMessage & msg, GstClockTime timestamp=GST_CLOCK_TIME_NONE);
 
-	bool on_message(GstMessage * msg);
-
+	/// groups all the parameters of this class
 	ofParameterGroup parameters;
+
+	/// parameter to adjust the bitrate of the video stream, can be adjunsted
+	/// on runtime
 	ofParameter<int> videoBitrate;
+
+	/// parameter to adjust the bitrate of the depth stream, can be adjusted
+	/// on runtime
 	ofParameter<int> depthBitrate;
+
+	/// parameter to adjust the bitrate of the audio stream, can be adjusted
+	/// on runtime
 	ofParameter<int> audioBitrate;
+
+	/// parameter to change the type of calculation for the drift when doing
+	/// echo cancellation
 	ofParameter<bool> reverseDriftCalculation;
 
 	static string LOG_NAME;
 
 private:
+
+	bool on_message(GstMessage * msg);
 	void vBitRateChanged(int & bitrate);
 	void dBitRateChanged(int & bitrate);
 	void aBitRateChanged(int & bitrate);
