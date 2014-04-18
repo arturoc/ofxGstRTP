@@ -49,7 +49,7 @@ void ofApp::setup(){
 	}else{
 		rtp.addSendDepthChannel(640,480,30,depth16);
 	}
-	//rtp.addSendOscChannel();
+	rtp.addSendOscChannel();
 	rtp.addSendAudioChannel();
 
 
@@ -228,7 +228,7 @@ void ofApp::update(){
 				}
 			}
 
-			/*{
+			{
 				gray.setFromPixels(kinect.getDepthPixelsRef());
 				gray.adaptiveThreshold(5,0,false,true);
 				contourFinder.findContours(gray,10,640*480/3,1,false,true);
@@ -245,7 +245,7 @@ void ofApp::update(){
 					}
 				}
 				rtp.getServer().newOscMsg(msg,now);
-			}*/
+			}
 
 			if(drawState==LocalPointCloud){
 				if(depth16){
@@ -308,13 +308,13 @@ void ofApp::update(){
 			}
 		}
 
-		/*if(rtp.getClient().isFrameNewOsc()){
+		if(rtp.getClient().isFrameNewOsc()){
 			ofxOscMessage msg = rtp.getClient().getOscMessage();
 			remoteContour.clear();
 			for(int i=0;i<msg.getNumArgs();i+=2){
 				remoteContour.addVertex(msg.getArgAsFloat(i),msg.getArgAsFloat(i+1));
 			}
-		}*/
+		}
 	}
 
 	/*if(calling!=-1){
@@ -325,7 +325,7 @@ void ofApp::update(){
 
 	if(callingState==ReceivingCall || callingState==Calling){
 		unsigned long long now = ofGetElapsedTimeMillis();
-		if(now - lastRing>2000){
+		if(now - lastRing>2500){
 			lastRing = now;
 			ring.play();
 		}
