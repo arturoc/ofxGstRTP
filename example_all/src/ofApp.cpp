@@ -421,7 +421,7 @@ void ofApp::draw(){
 	ofSetColor(255);
 	ofRect(ofGetWidth()-300,0,300,ofGetHeight());
 	if(guiState==Friends){
-		const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriends();
+		const vector<ofxXMPPUser> & friends = rtp.getXMPP().getFriendsWithCapability("telekinect");
 		size_t i=0;
 
 		for(;i<friends.size();i++){
@@ -448,15 +448,6 @@ void ofApp::draw(){
 				ofSetColor(ofColor::orange);
 			}
 			ofCircle(ofGetWidth()-270,20+20*i-5,3);
-			//cout << friends[i].userName << endl;
-			for(size_t j=0;j<friends[i].capabilities.size();j++){
-				if(friends[i].capabilities[j]=="telekinect"){
-					ofNoFill();
-					ofCircle(ofGetWidth()-270,20+20*i-5,5);
-					ofFill();
-					break;
-				}
-			}
 		}
 
 		i++;
@@ -532,7 +523,7 @@ void ofApp::mousePressed(int x, int y, int button){
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
 		if(friendsRect.inside(mouse)){
 			calling = mouse.y/20;
-			rtp.call(rtp.getXMPP().getFriends()[calling]);
+			rtp.call(rtp.getXMPP().getFriendsWithCapability("telekinect")[calling]);
 			callingState = Calling;
 		}
 	}else if(callingState == ReceivingCall){
