@@ -41,7 +41,7 @@ void ofApp::setup(){
 	// over internet you'll probably need to make it higher, around 200 is usually a good
 	// number but depends on the network conditions
 	client.setup("127.0.0.1",0);
-	client.addVideoChannel(5000,640,480,30);
+	client.addVideoChannel(5000);
 	client.addAudioChannel(6000);
 
 	server.setup("127.0.0.1");

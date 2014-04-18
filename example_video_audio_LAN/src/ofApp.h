@@ -12,7 +12,7 @@
 #include "ofxGstRTPServer.h"
 #include "ofxGui.h"
 
-#define DO_ECHO_CANCEL 1
+#define DO_ECHO_CANCEL 0
 
 #if DO_ECHO_CANCEL
 #include "ofxEchoCancel.h"
