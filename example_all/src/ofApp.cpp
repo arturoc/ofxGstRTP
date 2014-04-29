@@ -1,5 +1,6 @@
 #include "ofApp.h"
 #include "ofxGstRTPUtils.h"
+#include "ofxNice.h"
 #define USE_16BIT_DEPTH
 
 #ifdef USE_16BIT_DEPTH
@@ -40,7 +41,8 @@ void ofApp::setup(){
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
-	rtp.setup(200);
+	ofxNiceEnableDebug();
+	rtp.setup("132.177.123.6",200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);

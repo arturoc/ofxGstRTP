@@ -1,4 +1,5 @@
 #include "ofApp.h"
+#include "ofxNice.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -15,7 +16,8 @@ void ofApp::setup(){
 	grabber.initGrabber(640,480);
 	remoteVideo.allocate(640,480,GL_RGB);
 
-	rtp.setup(500);
+	ofxNiceEnableDebug();
+	rtp.setup("132.177.123.6",500);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);

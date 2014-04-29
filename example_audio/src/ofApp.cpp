@@ -1,4 +1,5 @@
 #include "ofApp.h"
+#include "ofxNice.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -11,8 +12,8 @@ void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
 
-
-	rtp.setup(500);
+	ofxNiceEnableDebug();
+	rtp.setup("132.177.123.6",500);
 	//rtp.getClient().drop = false;
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);

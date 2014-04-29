@@ -41,7 +41,7 @@ public:
 
 	/// start a client an server with the specified maximum latency
 	/// for the client
-	void setup(int clientLatency=200, bool enableEchoCancel=true);
+	void setup(string stunServer, int clientLatency=200, bool enableEchoCancel=true);
 
 	/// connect to the XMPP server, to be able to establish a session or
 	/// send chat messages
@@ -136,6 +136,7 @@ private:
 
 	bool videoGathered, depthGathered, audioGathered, oscGathered;
 	bool depth16;
+	string stunServer;
 
 #if ENABLE_ECHO_CANCEL
 	ofxEchoCancel echoCancel;

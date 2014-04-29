@@ -1,4 +1,5 @@
 #include "ofApp.h"
+#include "ofxNice.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -8,7 +9,8 @@ void ofApp::setup(){
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
-	rtp.setup(0);
+	ofxNiceEnableDebug();
+	rtp.setup("132.177.123.6",0);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendOscChannel();

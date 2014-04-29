@@ -49,7 +49,9 @@ ofxGstXMPPRTP::~ofxGstXMPPRTP() {
 	// TODO Auto-generated destructor stub
 }
 
-void ofxGstXMPPRTP::setup(int clientLatency, bool enableEchoCancel){
+void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoCancel){
+	this->stunServer = stunServer;
+
 #if ENABLE_ECHO_CANCEL
 	if(enableEchoCancel){
 		echoCancel.setup();
@@ -97,7 +99,7 @@ void ofxGstXMPPRTP::onJingleTerminateReceived(ofxXMPPTerminateReason & reason){
 
 void ofxGstXMPPRTP::acceptCall(){
 	ofGstUtils::startGstMainLoop();
-	nice.setup("77.72.174.165",3478,false,ofGstUtils::getGstMainLoop());
+	nice.setup(stunServer,3478,false,ofGstUtils::getGstMainLoop());
 
 	for(size_t i=0;i<remoteJingle.contents.size();i++){
 		if(remoteJingle.contents[i].media=="video"){
@@ -316,7 +318,7 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	isControlling = true;
 
 	ofGstUtils::startGstMainLoop();
-	nice.setup("77.72.174.165",3478,true,ofGstUtils::getGstMainLoop());
+	nice.setup(stunServer,3478,true,ofGstUtils::getGstMainLoop());
 
 	ofAddListener(xmpp.jingleInitiationAccepted,this,&ofxGstXMPPRTP::onJingleInitiationAccepted);
 
