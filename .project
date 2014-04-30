@@ -3,6 +3,9 @@
 	<name>ofxGstRTP</name>
 	<comment></comment>
 	<projects>
+		<project>ofxNice</project>
+		<project>ofxXMPP</project>
+		<project>openFrameworks</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

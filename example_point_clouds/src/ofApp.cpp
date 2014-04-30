@@ -162,12 +162,7 @@ void ofApp::update(){
 	if(kinect.isFrameNewVideo()){
 		fpsRGB.newFrame();
 		textureVideoLocal.loadData(kinect.getPixelsRef());
-
-		{
-			//kinectUpdater.signalNewKinectFrame();
-			rtp.getServer().newFrame(kinect.getPixelsRef(),now);
-		}
-
+		rtp.getServer().newFrame(kinect.getPixelsRef(),now);
 	}
 
 	if(kinect.isFrameNewDepth()){
