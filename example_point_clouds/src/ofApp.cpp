@@ -189,7 +189,7 @@ void ofApp::update(){
 	}
 	if(rtp.getClient().isFrameNewDepth()){
 
-		if(rtp.getClient().getPixelsDepth16().getWidth()==120 && rtp.getClient().getPixelsDepth16().getWidth()==160){
+		if(rtp.getClient().getPixelsDepth16().getWidth()==160 && rtp.getClient().getPixelsDepth16().getHeight()==120){
 			fpsClientDepth.newFrame();
 			textureDepthRemote.loadData(rtp.getClient().getPixelsDepth16());
 			int i=0;
@@ -199,6 +199,8 @@ void ofApp::update(){
 					i++;
 				}
 			}
+		}else{
+			cout << "depth frame w: " << rtp.getClient().getPixelsDepth16().getWidth() << "x"<<rtp.getClient().getPixelsDepth16().getHeight() << endl;
 		}
 	}
 
