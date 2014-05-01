@@ -64,7 +64,7 @@ void ofApp::setup(){
 	for(int y=0;y<120;y++){
 		for(int x=0;x<160;x++){
 			pointCloudLocal.getTexCoords()[i].set(x*4,y*4);
-			pointCloudLocal.getVertices()[i++].set(x,120-y);
+			pointCloudLocal.getVertices()[i++].set(x,y);
 		}
 	}
 	for (int y=0;y<120;y++){
@@ -175,7 +175,7 @@ void ofApp::update(){
 		int i=0;
 		for(int y=0;y<120;y++){
 			for(int x=0;x<160;x++){
-				pointCloudLocal.getVertices()[i].z = -resizedDepth[i];
+				pointCloudLocal.getVertices()[i].z = resizedDepth[i];
 				i++;
 			}
 		}
