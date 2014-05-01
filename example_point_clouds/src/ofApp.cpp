@@ -188,14 +188,16 @@ void ofApp::update(){
 		textureVideoRemote.loadData(rtp.getClient().getPixelsVideo());
 	}
 	if(rtp.getClient().isFrameNewDepth()){
-		fpsClientDepth.newFrame();
-		textureDepthRemote.loadData(rtp.getClient().getPixelsDepth16());
 
-		int i=0;
-		for(int y=0;y<120;y++){
-			for(int x=0;x<160;x++){
-				pointCloudRemote.getVertices()[i].z = rtp.getClient().getPixelsDepth16()[i];
-				i++;
+		if(rtp.getClient().getPixelsDepth16().getWidth()==120 && rtp.getClient().getPixelsDepth16().getWidth()==160){
+			fpsClientDepth.newFrame();
+			textureDepthRemote.loadData(rtp.getClient().getPixelsDepth16());
+			int i=0;
+			for(int y=0;y<120;y++){
+				for(int x=0;x<160;x++){
+					pointCloudRemote.getVertices()[i].z = rtp.getClient().getPixelsDepth16()[i];
+					i++;
+				}
 			}
 		}
 	}
