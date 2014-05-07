@@ -78,10 +78,10 @@ public:
 	/// all the workflow of the session initiation as well as creating
 	/// the corresponging ICE streams and agent
 	void setup(int latency);
-	void addAudioChannel(ofxNiceStream * niceStream);
-	void addVideoChannel(ofxNiceStream * niceStream);
-	void addDepthChannel(ofxNiceStream * niceStream, bool depth16=false);
-	void addOscChannel(ofxNiceStream * niceStream);
+	void addAudioChannel(shared_ptr<ofxNiceStream> niceStream);
+	void addVideoChannel(shared_ptr<ofxNiceStream> niceStream);
+	void addDepthChannel(shared_ptr<ofxNiceStream> niceStream, bool depth16=false);
+	void addOscChannel(shared_ptr<ofxNiceStream> niceStream);
 #endif
 
 	/// close the current connection
@@ -132,6 +132,8 @@ public:
 	/// groups all the parameters of this class
 	ofParameterGroup parameters;
 
+	ofEvent<void> disconnectedEvent;
+
 	static string LOG_NAME;
 
 #if ENABLE_ECHO_CANCEL
@@ -159,7 +161,7 @@ private:
 	};
 
 #if ENABLE_NAT_TRANSVERSAL
-	void createNetworkElements(NetworkElementsProperties properties, ofxNiceStream * niceStream);
+	void createNetworkElements(NetworkElementsProperties properties, shared_ptr<ofxNiceStream> niceStream);
 #else
 	void createNetworkElements(NetworkElementsProperties properties, void *);
 #endif
@@ -171,9 +173,8 @@ private:
 
 	// calbacks from gstUtils
 	bool on_message(GstMessage * msg);
-	GstFlowReturn on_preroll(GstSample * buffer);
-	GstFlowReturn on_buffer(GstSample * buffer);
 	void on_stream_prepared();
+	void on_eos();
 
 	// signal handlers for rtpc
 	static void on_ssrc_active_handler(GstBin * rtpbin, guint session, guint ssrc, ofxGstRTPClient * rtpClient);
@@ -285,10 +286,10 @@ private:
 
 #if ENABLE_NAT_TRANSVERSAL
 	// ICE/XMPP related
-	ofxNiceStream * videoStream;
-	ofxNiceStream * depthStream;
-	ofxNiceStream * oscStream;
-	ofxNiceStream * audioStream;
+	shared_ptr<ofxNiceStream> videoStream;
+	shared_ptr<ofxNiceStream> depthStream;
+	shared_ptr<ofxNiceStream> oscStream;
+	shared_ptr<ofxNiceStream> audioStream;
 	ofxXMPPJingleInitiation remoteJingle;
 #endif
 

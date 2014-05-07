@@ -41,7 +41,7 @@ void ofApp::setup(){
 	string user = settings.getValue("user");
 	string pwd = settings.getValue("pwd");
 
-	ofxNiceEnableDebug();
+	//ofxNiceEnableDebug();
 	rtp.setup("132.177.123.6",200);
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
@@ -174,13 +174,18 @@ void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	if(callingState==Calling){
 		ofSystemAlertDialog("Call declined");
 	}
+	cout << "received end call" << endl;
 	callingState = Disconnected;
-
-	/*rtp.setup(200);
-	rtp.addSendVideoChannel(640,480,30,300);
-	rtp.addSendDepthChannel(640,480,30,300);
+	calling = -1;
+	rtp.setup("132.177.123.6",200);
+	rtp.addSendVideoChannel(640,480,30);
+	if(depth16){
+		rtp.addSendDepthChannel(160,120,30,depth16);
+	}else{
+		rtp.addSendDepthChannel(640,480,30,depth16);
+	}
 	rtp.addSendOscChannel();
-	rtp.addSendAudioChannel();*/
+	rtp.addSendAudioChannel();
 }
 
 void ofApp::onNewMessage(ofxXMPPMessage & msg){
@@ -485,21 +490,20 @@ void ofApp::keyPressed(int key){
 	}else if(key==OF_KEY_UP){
 		guiState = (GuiState)(guiState+1);
 		guiState = (GuiState)(guiState%NumGuiStates);
-	}else if(key!=OF_KEY_RETURN){
-		if(calling!=-1){
-			currentMessage += (char)key;
+	}else if(key==' '){
+		cout << "ending call" << endl;
+		rtp.endCall();
+		rtp.setup("132.177.123.6",200);
+		rtp.addSendVideoChannel(640,480,30);
+		if(depth16){
+			rtp.addSendDepthChannel(160,120,30,depth16);
+		}else{
+			rtp.addSendDepthChannel(640,480,30,depth16);
 		}
-	}else{
-		if(calling!=-1){
-			rtp.getXMPP().sendMessage(rtp.getFriends()[calling].userName,currentMessage);
-			ofxXMPPMessage msg;
-			msg.from = "me";
-			msg.body = currentMessage;
-			messages.push_back(msg);
-			if(messages.size()>8) messages.pop_front();
-
-			currentMessage = "";
-		}
+		rtp.addSendOscChannel();
+		rtp.addSendAudioChannel();
+		calling = -1;
+		callingState = Disconnected;
 	}
 }
 

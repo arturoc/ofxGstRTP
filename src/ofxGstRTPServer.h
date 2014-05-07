@@ -97,10 +97,10 @@ public:
 	/// all the workflow of the session initiation as well as creating
 	/// the corresponging ICE streams and agent
 	void setup();
-	void addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool autotimestamp=false);
-	void addAudioChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
-	void addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16=false, bool autotimestamp=false);
-	void addOscChannel(ofxNiceStream * niceStream, bool autotimestamp=false);
+	void addVideoChannel(shared_ptr<ofxNiceStream>, int w, int h, int fps, bool autotimestamp=false);
+	void addAudioChannel(shared_ptr<ofxNiceStream>, bool autotimestamp=false);
+	void addDepthChannel(shared_ptr<ofxNiceStream>, int w, int h, int fps, bool depth16=false, bool autotimestamp=false);
+	void addOscChannel(shared_ptr<ofxNiceStream>, bool autotimestamp=false);
 #endif
 
 	/// close the current connection
@@ -219,10 +219,10 @@ private:
 	bool sendVideoKeyFrame, sendDepthKeyFrame;
 
 #if ENABLE_NAT_TRANSVERSAL
-	ofxNiceStream * videoStream;
-	ofxNiceStream * depthStream;
-	ofxNiceStream * oscStream;
-	ofxNiceStream * audioStream;
+	shared_ptr<ofxNiceStream> videoStream;
+	shared_ptr<ofxNiceStream> depthStream;
+	shared_ptr<ofxNiceStream> oscStream;
+	shared_ptr<ofxNiceStream> audioStream;
 #endif
 
 	bool firstVideoFrame;

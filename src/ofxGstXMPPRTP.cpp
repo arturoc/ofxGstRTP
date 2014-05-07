@@ -22,16 +22,16 @@ static gboolean nicesink_plugin_init(GstPlugin * plugin){
 #endif
 
 ofxGstXMPPRTP::ofxGstXMPPRTP()
-:isControlling(false)
-,videoStream(NULL)
-,depthStream(NULL)
-,audioStream(NULL)
-,oscStream(NULL)
+:nice(new ofxNiceAgent)
+,server(new ofxGstRTPServer)
+,client(new ofxGstRTPClient)
+,isControlling(false)
 ,videoGathered(false)
 ,depthGathered(false)
 ,audioGathered(false)
 ,oscGathered(false)
 ,depth16(false)
+,initialized(false)
 {
 #ifndef TARGET_LINUX
     static bool plugins_registered = false;
@@ -51,6 +51,11 @@ ofxGstXMPPRTP::~ofxGstXMPPRTP() {
 
 void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoCancel){
 	this->stunServer = stunServer;
+	if(initialized){
+		server = shared_ptr<ofxGstRTPServer>(new ofxGstRTPServer);
+		client = shared_ptr<ofxGstRTPClient>(new ofxGstRTPClient);
+		parameters.clear();
+	}
 
 #if ENABLE_ECHO_CANCEL
 	if(enableEchoCancel){
@@ -61,11 +66,11 @@ void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoC
 	}
 #endif
 
-	server.setup();
-	client.setup(clientLatency);
+	server->setup();
+	client->setup(clientLatency);
 
-    parameters.add(client.parameters);
-    parameters.add(server.parameters);
+    parameters.add(client->parameters);
+    parameters.add(server->parameters);
 
 #if ENABLE_ECHO_CANCEL
 	if(enableEchoCancel){
@@ -75,7 +80,9 @@ void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoC
 
 	ofAddListener(xmpp.jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
 	ofAddListener(xmpp.jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);
+	ofAddListener(client->disconnectedEvent,this,&ofxGstXMPPRTP::onClientDisconnected);
 
+	initialized = true;
 }
 
 void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle){
@@ -91,67 +98,74 @@ void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle)
 }
 
 void ofxGstXMPPRTP::onJingleTerminateReceived(ofxXMPPTerminateReason & reason){
-	server.close();
-	client.close();
+	close();
+	ofNotifyEvent(callFinished,reason,this);
+}
+
+void ofxGstXMPPRTP::onClientDisconnected(){
+	close();
+	ofxXMPPTerminateReason reason = ofxXMPPTerminateUnkown;
+
+	xmpp.terminateRTPSession(remoteJingle, reason);
 
 	ofNotifyEvent(callFinished,reason,this);
 }
 
 void ofxGstXMPPRTP::acceptCall(){
 	ofGstUtils::startGstMainLoop();
-	nice.setup(stunServer,3478,false,ofGstUtils::getGstMainLoop());
+	nice->setup(stunServer,3478,false,ofGstUtils::getGstMainLoop());
 
 	for(size_t i=0;i<remoteJingle.contents.size();i++){
 		if(remoteJingle.contents[i].media=="video"){
 			ofLogNotice() << "adding video channel to client";
 			if(!videoStream){
-				videoStream = new ofxNiceStream();
+				videoStream = shared_ptr<ofxNiceStream>(new ofxNiceStream());
 				videoStream->setLogName("video");
 			}
-			videoStream->setup(nice,3);
-			nice.addStream(videoStream);
-			client.addVideoChannel(videoStream);
+			videoStream->setup(*nice,3);
+			nice->addStream(videoStream);
+			client->addVideoChannel(videoStream);
 		}else if(remoteJingle.contents[i].media=="depth"){
 			ofLogNotice() << "adding depth channel to client";
 			if(!depthStream){
-				depthStream = new ofxNiceStream();
+				depthStream = shared_ptr<ofxNiceStream>(new ofxNiceStream());
 				depthStream->setLogName("depth");
 			}
-			depthStream->setup(nice,3);
-			nice.addStream(depthStream);
-			client.addDepthChannel(depthStream,false);
+			depthStream->setup(*nice,3);
+			nice->addStream(depthStream);
+			client->addDepthChannel(depthStream,false);
 		}else if(remoteJingle.contents[i].media=="depth16"){
 			ofLogNotice() << "adding depth16 channel to client";
 			if(!depthStream){
-				depthStream = new ofxNiceStream();
+				depthStream = shared_ptr<ofxNiceStream>(new ofxNiceStream());
 				depthStream->setLogName("depth16");
 			}
-			depthStream->setup(nice,3);
-			nice.addStream(depthStream);
-			client.addDepthChannel(depthStream,true);
+			depthStream->setup(*nice,3);
+			nice->addStream(depthStream);
+			client->addDepthChannel(depthStream,true);
 		}else if(remoteJingle.contents[i].media=="audio"){
 			ofLogNotice() << "adding audio channel to client";
 			if(!audioStream){
-				audioStream = new ofxNiceStream();
+				audioStream = shared_ptr<ofxNiceStream>(new ofxNiceStream());
 				audioStream->setLogName("audio");
 			}
-			audioStream->setup(nice,3);
-			nice.addStream(audioStream);
-			client.addAudioChannel(audioStream);
+			audioStream->setup(*nice,3);
+			nice->addStream(audioStream);
+			client->addAudioChannel(audioStream);
 		}else if(remoteJingle.contents[i].media=="osc"){
 			ofLogNotice() << "adding osc channel to client";
 			if(!oscStream){
-				oscStream = new ofxNiceStream();
+				oscStream = shared_ptr<ofxNiceStream>(new ofxNiceStream());
 				oscStream->setLogName("osc");
 			}
-			oscStream->setup(nice,3);
-			nice.addStream(oscStream);
-			client.addOscChannel(oscStream);
+			oscStream->setup(*nice,3);
+			nice->addStream(oscStream);
+			client->addOscChannel(oscStream);
 		}
 	}
 
-	server.play();
-	client.play();
+	server->play();
+	client->play();
 
 
 	if(videoStream) videoStream->gatherLocalCandidates();
@@ -162,15 +176,15 @@ void ofxGstXMPPRTP::acceptCall(){
 	for(size_t i=0;i<remoteJingle.contents.size();i++){
 		ofxNiceStream * stream = NULL;
 		if(remoteJingle.contents[i].media=="video"){
-			stream = videoStream;
+			stream = videoStream.get();
 		}else if(remoteJingle.contents[i].media=="depth"){
-			stream = depthStream;
+			stream = depthStream.get();
 		}else if(remoteJingle.contents[i].media=="depth16"){
-			stream = depthStream;
+			stream = depthStream.get();
 		}else if(remoteJingle.contents[i].media=="audio"){
-			stream = audioStream;
+			stream = audioStream.get();
 		}else if(remoteJingle.contents[i].media=="osc"){
-			stream = oscStream;
+			stream = oscStream.get();
 		}
 		if(stream){
 			stream->setRemoteCredentials(remoteJingle.contents[i].transport.ufrag, remoteJingle.contents[i].transport.pwd);
@@ -181,6 +195,12 @@ void ofxGstXMPPRTP::acceptCall(){
 
 void ofxGstXMPPRTP::refuseCall(){
 	xmpp.terminateRTPSession(remoteJingle, ofxXMPPTerminateDecline);
+	close();
+}
+
+void ofxGstXMPPRTP::endCall(){
+	xmpp.terminateRTPSession(remoteJingle, ofxXMPPTerminateSuccess);
+	close();
 }
 
 void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<ofxICECandidate> & candidates){
@@ -216,10 +236,10 @@ void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<o
 	localJingle.contents.push_back(content);
 
 
-	if(stream==videoStream) videoGathered = true;
-	if(stream==audioStream) audioGathered = true;
-	if(stream==depthStream) depthGathered = true;
-	if(stream==oscStream) oscGathered = true;
+	if(stream==videoStream.get()) videoGathered = true;
+	if(stream==audioStream.get()) audioGathered = true;
+	if(stream==depthStream.get()) depthGathered = true;
+	if(stream==oscStream.get()) oscGathered = true;
 
 	if( (videoGathered || !videoStream) && (audioGathered || !audioStream) && (depthGathered || !depthStream) && (oscGathered || !oscStream)){
 		if(!isControlling){
@@ -281,35 +301,35 @@ void ofxGstXMPPRTP::sendXMPPMessage(const string & to, const string & message){
 }
 
 void ofxGstXMPPRTP::addSendVideoChannel(int w, int h, int fps){
-	videoStream = new ofxNiceStream;
+	videoStream = shared_ptr<ofxNiceStream>(new ofxNiceStream);
 	videoStream->setLogName("video");
-	server.addVideoChannel(videoStream,w,h,fps);
+	server->addVideoChannel(videoStream,w,h,fps);
 	ofAddListener(videoStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
 void ofxGstXMPPRTP::addSendDepthChannel(int w, int h, int fps, bool depth16){
 	this->depth16 = depth16;
-	depthStream = new ofxNiceStream;
+	depthStream = shared_ptr<ofxNiceStream>(new ofxNiceStream);
 	if(depth16){
 		depthStream->setLogName("depth16");
 	}else{
 		depthStream->setLogName("depth");
 	}
-	server.addDepthChannel(depthStream,w,h,fps,depth16);
+	server->addDepthChannel(depthStream,w,h,fps,depth16);
 	ofAddListener(depthStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
 void ofxGstXMPPRTP::addSendAudioChannel(){
-	audioStream = new ofxNiceStream;
+	audioStream = shared_ptr<ofxNiceStream>(new ofxNiceStream);
 	audioStream->setLogName("audio");
-	server.addAudioChannel(audioStream);
+	server->addAudioChannel(audioStream);
 	ofAddListener(audioStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
 void ofxGstXMPPRTP::addSendOscChannel(){
-	oscStream = new ofxNiceStream;
+	oscStream = shared_ptr<ofxNiceStream>(new ofxNiceStream);
 	oscStream->setLogName("osc");
-	server.addOscChannel(oscStream);
+	server->addOscChannel(oscStream);
 	ofAddListener(oscStream->localCandidatesGathered,this,&ofxGstXMPPRTP::onNiceLocalCandidatesGathered);
 }
 
@@ -318,33 +338,33 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	isControlling = true;
 
 	ofGstUtils::startGstMainLoop();
-	nice.setup(stunServer,3478,true,ofGstUtils::getGstMainLoop());
+	nice->setup(stunServer,3478,true,ofGstUtils::getGstMainLoop());
 
 	ofAddListener(xmpp.jingleInitiationAccepted,this,&ofxGstXMPPRTP::onJingleInitiationAccepted);
 
 	if(videoStream){
-		videoStream->setup(nice,3);
-		nice.addStream(videoStream);
-		client.addVideoChannel(videoStream);
+		videoStream->setup(*nice,3);
+		nice->addStream(videoStream);
+		client->addVideoChannel(videoStream);
 	}
 	if(audioStream){
-		audioStream->setup(nice,3);
-		nice.addStream(audioStream);
-		client.addAudioChannel(audioStream);
+		audioStream->setup(*nice,3);
+		nice->addStream(audioStream);
+		client->addAudioChannel(audioStream);
 	}
 	if(depthStream){
-		depthStream->setup(nice,3);
-		nice.addStream(depthStream);
-		client.addDepthChannel(depthStream,depth16);
+		depthStream->setup(*nice,3);
+		nice->addStream(depthStream);
+		client->addDepthChannel(depthStream,depth16);
 	}
 	if(oscStream){
-		oscStream->setup(nice,3);
-		nice.addStream(oscStream);
-		client.addOscChannel(oscStream);
+		oscStream->setup(*nice,3);
+		nice->addStream(oscStream);
+		client->addOscChannel(oscStream);
 	}
 
-	server.play();
-	client.play();
+	server->play();
+	client->play();
 
 	if(videoStream) videoStream->gatherLocalCandidates();
 	if(depthStream) depthStream->gatherLocalCandidates();
@@ -353,15 +373,31 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 }
 
 ofxGstRTPServer & ofxGstXMPPRTP::getServer(){
-	return server;
+	return *server;
 }
 
 ofxGstRTPClient & ofxGstXMPPRTP::getClient(){
-	return client;
+	return *client;
 }
 
 ofxXMPP & ofxGstXMPPRTP::getXMPP(){
 	return xmpp;
+}
+
+void ofxGstXMPPRTP::close(){
+	nice = shared_ptr<ofxNiceAgent>(new ofxNiceAgent);
+	videoStream.reset();
+	audioStream.reset();
+	oscStream.reset();
+	depthStream.reset();
+	localJingle = ofxXMPPJingleInitiation();
+	remoteJingle = ofxXMPPJingleInitiation();
+	isControlling = false;
+	videoGathered = false;
+	depthGathered = false;
+	audioGathered = false;
+	oscGathered = false;
+	depth16 = false;
 }
 
 #endif

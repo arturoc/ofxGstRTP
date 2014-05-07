@@ -113,29 +113,35 @@ public:
 	/// after receiving a call, call this method to refuse it
 	void refuseCall();
 
+	void endCall();
+
 private:
 	void onNiceLocalCandidatesGathered(const void * sender, vector<ofxICECandidate> & candidates);
 	void onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle);
 	void onJingleInitiationAccepted(ofxXMPPJingleInitiation & jingle);
 	void onJingleTerminateReceived(ofxXMPPTerminateReason & reason);
+	void onClientDisconnected();
+
+	void close();
 
 	ofxXMPP xmpp;
-	ofxNiceAgent nice;
-	ofxGstRTPClient client;
-	ofxGstRTPServer server;
+	shared_ptr<ofxNiceAgent> nice;
+	shared_ptr<ofxGstRTPClient> client;
+	shared_ptr<ofxGstRTPServer> server;
 	ofxXMPPJingleInitiation remoteJingle;
 	ofxXMPPJingleInitiation localJingle;
 
 	ofxXMPPUser callingTo;
 	bool isControlling;
 
-	ofxNiceStream * videoStream;
-	ofxNiceStream * depthStream;
-	ofxNiceStream * audioStream;
-	ofxNiceStream * oscStream;
+	shared_ptr<ofxNiceStream> videoStream;
+	shared_ptr<ofxNiceStream> depthStream;
+	shared_ptr<ofxNiceStream> audioStream;
+	shared_ptr<ofxNiceStream> oscStream;
 
 	bool videoGathered, depthGathered, audioGathered, oscGathered;
 	bool depth16;
+	bool initialized;
 	string stunServer;
 
 #if ENABLE_ECHO_CANCEL

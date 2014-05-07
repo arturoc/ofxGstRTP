@@ -116,12 +116,6 @@ ofxGstRTPServer::ofxGstRTPServer()
 ,oscSSRC(0)
 ,sendVideoKeyFrame(true)
 ,sendDepthKeyFrame(true)
-#if ENABLE_NAT_TRANSVERSAL
-,videoStream(NULL)
-,depthStream(NULL)
-,oscStream(NULL)
-,audioStream(NULL)
-#endif
 ,firstVideoFrame(true)
 ,firstOscFrame(true)
 ,firstDepthFrame(true)
@@ -154,6 +148,7 @@ ofxGstRTPServer::ofxGstRTPServer()
 }
 
 ofxGstRTPServer::~ofxGstRTPServer() {
+	close();
 }
 
 
@@ -378,25 +373,25 @@ void ofxGstRTPServer::addOscChannel(int port, bool autotimestamp){
 }
 
 #if ENABLE_NAT_TRANSVERSAL
-void ofxGstRTPServer::addVideoChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool autotimestamp){
+void ofxGstRTPServer::addVideoChannel(shared_ptr<ofxNiceStream> niceStream, int w, int h, int fps, bool autotimestamp){
 	videoStream = niceStream;
 	videoAutoTimestamp = autotimestamp;
 	addVideoChannel(0,w,h,fps,autotimestamp);
 }
 
-void ofxGstRTPServer::addAudioChannel(ofxNiceStream * niceStream, bool autotimestamp){
+void ofxGstRTPServer::addAudioChannel(shared_ptr<ofxNiceStream> niceStream, bool autotimestamp){
 	audioStream = niceStream;
 	audioAutoTimestamp = autotimestamp;
 	addAudioChannel(0);
 }
 
-void ofxGstRTPServer::addDepthChannel(ofxNiceStream * niceStream, int w, int h, int fps, bool depth16, bool autotimestamp){
+void ofxGstRTPServer::addDepthChannel(shared_ptr<ofxNiceStream> niceStream, int w, int h, int fps, bool depth16, bool autotimestamp){
 	depthStream = niceStream;
 	depthAutoTimestamp = autotimestamp;
 	addDepthChannel(0,w,h,fps,depth16,autotimestamp);
 }
 
-void ofxGstRTPServer::addOscChannel(ofxNiceStream * niceStream, bool autotimestamp){
+void ofxGstRTPServer::addOscChannel(shared_ptr<ofxNiceStream> niceStream, bool autotimestamp){
 	oscStream = niceStream;
 	oscAutoTimestamp = autotimestamp;
 	addOscChannel(0,autotimestamp);
@@ -479,6 +474,18 @@ void ofxGstRTPServer::setEchoCancel(ofxEchoCancel & echoCancel){
 #endif
 
 void ofxGstRTPServer::close(){
+	if(appSrcDepth){
+		gst_element_send_event(appSrcDepth,gst_event_new_eos());
+	}
+	if(appSrcVideoRGB){
+		gst_element_send_event(appSrcVideoRGB,gst_event_new_eos());
+	}
+	if(appSrcOsc){
+		gst_element_send_event(appSrcOsc,gst_event_new_eos());
+	}
+	if(gst.getGstElementByName("audiocapture")){
+		gst_element_send_event(gst.getGstElementByName("audiocapture"),gst_event_new_eos());
+	}
 	gst.close();
 	vRTPsink = NULL;
 	vRTPCsink = NULL;
@@ -502,14 +509,16 @@ void ofxGstRTPServer::close(){
 	height = 0;
 	lastSessionNumber = 0;
 #if ENABLE_NAT_TRANSVERSAL
-	videoStream = NULL;
-	depthStream = NULL;
-	oscStream = NULL;
-	audioStream = NULL;
+	videoStream.reset();
+	depthStream.reset();
+	oscStream.reset();
+	audioStream.reset();
 #endif
 	firstVideoFrame = true;
 	firstOscFrame = true;
 	firstDepthFrame = true;
+
+	ofRemoveListener(ofEvents().update,this,&ofxGstRTPServer::update);
 }
 
 

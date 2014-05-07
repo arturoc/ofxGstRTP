@@ -93,13 +93,6 @@ ofxGstRTPClient::ofxGstRTPClient()
 ,oscReady(false)
 ,lastSessionNumber(0)
 
-#if ENABLE_NAT_TRANSVERSAL
-,videoStream(NULL)
-,depthStream(NULL)
-,oscStream(NULL)
-,audioStream(NULL)
-#endif
-
 #if ENABLE_ECHO_CANCEL
 ,audioChannelReady(false)
 ,echoCancel(NULL)
@@ -125,6 +118,7 @@ ofxGstRTPClient::ofxGstRTPClient()
 }
 
 ofxGstRTPClient::~ofxGstRTPClient() {
+	close();
 }
 
 
@@ -286,7 +280,7 @@ void ofxGstRTPClient::on_bye_ssrc_handler(GstBin *rtpbin, guint session, guint s
 }
 
 #if ENABLE_NAT_TRANSVERSAL
-void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties, ofxNiceStream * niceStream){
+void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties, shared_ptr<ofxNiceStream> niceStream){
 #else
 void ofxGstRTPClient::createNetworkElements(NetworkElementsProperties properties, void *){
 #endif
@@ -672,7 +666,11 @@ void ofxGstRTPClient::addVideoChannel(int port){
 	properties.sourceName = "vrtpsrc";
 	properties.rtpcSourceName = "vrtcpsrc";
 	properties.rtpcSinkName = "vrtcpsink";
+#if ENABLE_NAT_TRANSVERSAL
+	createNetworkElements(properties,shared_ptr<ofxNiceStream>());
+#else
 	createNetworkElements(properties,NULL);
+#endif
 
 }
 
@@ -706,7 +704,11 @@ void ofxGstRTPClient::addDepthChannel(int port, bool depth16){
 	properties.sourceName = "drtpsrc";
 	properties.rtpcSourceName = "drtcpsrc";
 	properties.rtpcSinkName = "drtcpsink";
-	createNetworkElements(properties, NULL);
+#if ENABLE_NAT_TRANSVERSAL
+	createNetworkElements(properties,shared_ptr<ofxNiceStream>());
+#else
+	createNetworkElements(properties,NULL);
+#endif
 
 }
 
@@ -734,7 +736,11 @@ void ofxGstRTPClient::addAudioChannel(int port){
 	properties.sourceName = "artpsrc";
 	properties.rtpcSourceName = "artcpsrc";
 	properties.rtpcSinkName = "artcpsink";
-	createNetworkElements(properties, NULL);
+#if ENABLE_NAT_TRANSVERSAL
+	createNetworkElements(properties,shared_ptr<ofxNiceStream>());
+#else
+	createNetworkElements(properties,NULL);
+#endif
 
 }
 
@@ -762,12 +768,16 @@ void ofxGstRTPClient::addOscChannel(int port){
 	properties.sourceName = "ortpsrc";
 	properties.rtpcSourceName = "ortcpsrc";
 	properties.rtpcSinkName = "ortcpsink";
+#if ENABLE_NAT_TRANSVERSAL
+	createNetworkElements(properties,shared_ptr<ofxNiceStream>());
+#else
 	createNetworkElements(properties,NULL);
+#endif
 
 }
 
 #if ENABLE_NAT_TRANSVERSAL
-void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream){
+void ofxGstRTPClient::addVideoChannel(shared_ptr<ofxNiceStream> niceStream){
 	videoStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -794,7 +804,7 @@ void ofxGstRTPClient::addVideoChannel(ofxNiceStream * niceStream){
 
 }
 
-void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
+void ofxGstRTPClient::addAudioChannel(shared_ptr<ofxNiceStream> niceStream){
 	audioStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -820,7 +830,7 @@ void ofxGstRTPClient::addAudioChannel(ofxNiceStream * niceStream){
 	createNetworkElements(properties, niceStream);
 }
 
-void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, bool depth16){
+void ofxGstRTPClient::addDepthChannel(shared_ptr<ofxNiceStream> niceStream, bool depth16){
 	depthStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -853,7 +863,7 @@ void ofxGstRTPClient::addDepthChannel(ofxNiceStream * niceStream, bool depth16){
 
 }
 
-void ofxGstRTPClient::addOscChannel(ofxNiceStream * niceStream){
+void ofxGstRTPClient::addOscChannel(shared_ptr<ofxNiceStream> niceStream){
 	oscStream = niceStream;
 
 	// the caps of the sender RTP stream.
@@ -970,10 +980,10 @@ void ofxGstRTPClient::close(){
 	oscReady = false;
 	lastSessionNumber = 0;
 #if ENABLE_NAT_TRANSVERSAL
-	videoStream = NULL;
-	depthStream = NULL;
-	oscStream = NULL;
-	audioStream = NULL;
+	videoStream.reset();
+	depthStream.reset();
+	oscStream.reset();
+	audioStream.reset();
 #endif
 }
 
@@ -1211,20 +1221,9 @@ bool ofxGstRTPClient::on_message(GstMessage * msg){
 	}
 }
 
-
-GstFlowReturn ofxGstRTPClient::on_preroll(GstSample * buffer){
-	// shouldn't happen on a live pipeline
-	return GST_FLOW_OK;
+void ofxGstRTPClient::on_eos(){
+	disconnectedEvent.notify(this);
 }
-
-
-GstFlowReturn ofxGstRTPClient::on_buffer(GstSample * buffer){
-	// we don't need to do anything by now when there's a new buffer
-	// ofGstVideoUtils already manages it and puts the data in it's internal
-	// ofPixels
-	return GST_FLOW_OK;
-}
-
 
 void ofxGstRTPClient::on_stream_prepared(){
 };
