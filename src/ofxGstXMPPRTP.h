@@ -43,6 +43,9 @@ public:
 	/// for the client
 	void setup(string stunServer, int clientLatency=200, bool enableEchoCancel=true);
 
+	/// add a TURN server to use for during discovery
+	void addRelay(const string & ip, uint port, const string & user, const string & pwd, NiceRelayType type);
+
 	/// connect to the XMPP server, to be able to establish a session or
 	/// send chat messages
 	void connectXMPP(const string & host, const string & username, const string & pwd);

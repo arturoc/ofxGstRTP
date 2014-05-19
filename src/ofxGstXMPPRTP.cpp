@@ -85,6 +85,11 @@ void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoC
 	initialized = true;
 }
 
+/// add a TURN server to use for during discovery
+void ofxGstXMPPRTP::addRelay(const string & ip, uint port, const string & user, const string & pwd, NiceRelayType type){
+	nice->addRelay(ip,port,user,pwd,type);
+}
+
 void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle){
 	ofLogNotice() << "received call from " << jingle.from;
 
