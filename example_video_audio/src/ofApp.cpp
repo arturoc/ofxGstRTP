@@ -17,7 +17,8 @@ void ofApp::setup(){
 	remoteVideo.allocate(640,480,GL_RGB);
 
 	ofxNiceEnableDebug();
-	rtp.setup("132.177.123.6",500);
+	rtp.setup(500);
+	rtp.setStunServer("132.177.123.6");
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);

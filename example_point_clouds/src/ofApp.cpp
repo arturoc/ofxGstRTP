@@ -15,7 +15,8 @@ void ofApp::setup(){
 	string pwd = settings.getValue("pwd");
 
 	ofxNiceEnableDebug();
-	rtp.setup("132.177.123.6",200);
+	rtp.setup(200);
+	rtp.setStunServer("132.177.123.6");
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);

@@ -39,11 +39,14 @@ public:
 	ofxGstXMPPRTP();
 	virtual ~ofxGstXMPPRTP();
 
-	/// start a client an server with the specified maximum latency
+	/// starts a client and server with the specified maximum latency
 	/// for the client
-	void setup(string stunServer, int clientLatency=200, bool enableEchoCancel=true);
+	void setup(int clientLatency=200, bool enableEchoCancel=true);
 
-	/// add a TURN server to use for during discovery
+	/// setup a STUN server to be used for NAT transversal
+	void setStunServer(const string & ip, uint port=3478);
+
+	/// add a TURN server to use for NAT transversal
 	void addRelay(const string & ip, uint port, const string & user, const string & pwd, NiceRelayType type);
 
 	/// connect to the XMPP server, to be able to establish a session or
@@ -146,6 +149,7 @@ private:
 	bool depth16;
 	bool initialized;
 	string stunServer;
+	uint stunPort;
 
 #if ENABLE_ECHO_CANCEL
 	ofxEchoCancel echoCancel;

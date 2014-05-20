@@ -13,7 +13,9 @@ void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
 
 	ofxNiceEnableDebug();
-	rtp.setup("132.177.123.6",500);
+	rtp.setup(500);
+	rtp.setStunServer("108.161.129.135");
+	rtp.addRelay("108.161.129.135",3479,"","",NICE_RELAY_TYPE_TURN_UDP);
 	//rtp.getClient().drop = false;
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);

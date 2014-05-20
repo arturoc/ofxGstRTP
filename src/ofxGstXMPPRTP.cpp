@@ -49,8 +49,7 @@ ofxGstXMPPRTP::~ofxGstXMPPRTP() {
 	// TODO Auto-generated destructor stub
 }
 
-void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoCancel){
-	this->stunServer = stunServer;
+void ofxGstXMPPRTP::setup(int clientLatency, bool enableEchoCancel){
 	if(initialized){
 		server = shared_ptr<ofxGstRTPServer>(new ofxGstRTPServer);
 		client = shared_ptr<ofxGstRTPClient>(new ofxGstRTPClient);
@@ -83,6 +82,11 @@ void ofxGstXMPPRTP::setup(string stunServer, int clientLatency, bool enableEchoC
 	ofAddListener(client->disconnectedEvent,this,&ofxGstXMPPRTP::onClientDisconnected);
 
 	initialized = true;
+}
+
+void ofxGstXMPPRTP::setStunServer(const string & ip, uint port=3478){
+	stunServer = ip;
+	stunPort = port;
 }
 
 /// add a TURN server to use for during discovery
@@ -118,7 +122,10 @@ void ofxGstXMPPRTP::onClientDisconnected(){
 
 void ofxGstXMPPRTP::acceptCall(){
 	ofGstUtils::startGstMainLoop();
-	nice->setup(stunServer,3478,false,ofGstUtils::getGstMainLoop());
+	nice->setup(false,ofGstUtils::getGstMainLoop());
+	if(stunServer!=""){
+		nice->setStunServer(stunServer,stunPort);
+	}
 
 	for(size_t i=0;i<remoteJingle.contents.size();i++){
 		if(remoteJingle.contents[i].media=="video"){
@@ -343,7 +350,10 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 	isControlling = true;
 
 	ofGstUtils::startGstMainLoop();
-	nice->setup(stunServer,3478,true,ofGstUtils::getGstMainLoop());
+	nice->setup(true,ofGstUtils::getGstMainLoop());
+	if(stunServer!=""){
+		nice->setStunServer(stunServer,stunPort);
+	}
 
 	ofAddListener(xmpp.jingleInitiationAccepted,this,&ofxGstXMPPRTP::onJingleInitiationAccepted);
 

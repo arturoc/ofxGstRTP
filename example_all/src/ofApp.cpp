@@ -42,7 +42,8 @@ void ofApp::setup(){
 	string pwd = settings.getValue("pwd");
 
 	//ofxNiceEnableDebug();
-	rtp.setup("132.177.123.6",200);
+	rtp.setup(200);
+	rtp.setStunServer("132.177.123.6");
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
 	rtp.addSendVideoChannel(640,480,30);
@@ -177,7 +178,8 @@ void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	cout << "received end call" << endl;
 	callingState = Disconnected;
 	calling = -1;
-	rtp.setup("132.177.123.6",200);
+	rtp.setup(200);
+	rtp.setStunServer("132.177.123.6");
 	rtp.addSendVideoChannel(640,480,30);
 	if(depth16){
 		rtp.addSendDepthChannel(160,120,30,depth16);
@@ -493,7 +495,8 @@ void ofApp::keyPressed(int key){
 	}else if(key==' '){
 		cout << "ending call" << endl;
 		rtp.endCall();
-		rtp.setup("132.177.123.6",200);
+		rtp.setup(200);
+		rtp.setStunServer("132.177.123.6");
 		rtp.addSendVideoChannel(640,480,30);
 		if(depth16){
 			rtp.addSendDepthChannel(160,120,30,depth16);
