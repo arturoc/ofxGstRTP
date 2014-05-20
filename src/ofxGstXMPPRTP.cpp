@@ -84,7 +84,7 @@ void ofxGstXMPPRTP::setup(int clientLatency, bool enableEchoCancel){
 	initialized = true;
 }
 
-void ofxGstXMPPRTP::setStunServer(const string & ip, uint port=3478){
+void ofxGstXMPPRTP::setStunServer(const string & ip, uint port){
 	stunServer = ip;
 	stunPort = port;
 }
