@@ -2,10 +2,15 @@
 #include "ofxGstRTPUtils.h"
 #include "ofxNice.h"
 #include "ofConstants.h"
+#include "ofxGStreamer.h"
 
+//#define BUNDLED
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+#ifdef BUNDLED
+    ofxGStreamerSetBundleEnvironment();
+#endif
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 
 	ofXml settings;

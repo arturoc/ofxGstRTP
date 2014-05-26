@@ -1,7 +1,13 @@
 #include "ofApp.h"
 #include "ofxGstRTPUtils.h"
 #include "ofxNice.h"
+#include "ofxGStreamer.h"
+
 #define USE_16BIT_DEPTH
+
+// uncomment to generate env vars for bundled
+// application in osx
+//#define BUNDLED
 
 #ifdef USE_16BIT_DEPTH
 	bool depth16=true;
@@ -34,6 +40,9 @@ string vertexShader = STRINGIFY(
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+#ifdef BUNDLED
+    ofxGStreamerSetBundleEnvironment();
+#endif
 
 	ofXml settings;
 	settings.load("settings.xml");

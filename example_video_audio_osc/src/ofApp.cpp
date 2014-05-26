@@ -1,8 +1,14 @@
 #include "ofApp.h"
 #include "ofxNice.h"
+#include "ofxGStreamer.h"
+
+//#define BUNDLED
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+#ifdef BUNDLED
+    ofxGStreamerSetBundleEnvironment();
+#endif
 	ofXml settings;
 	settings.load("settings.xml");
 	string server = settings.getValue("server");
