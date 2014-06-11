@@ -15,7 +15,7 @@ void ofApp::setup(){
 	ofxNiceEnableDebug();
 	rtp.setup(500);
 	rtp.setStunServer("108.161.129.135");
-	rtp.addRelay("108.161.129.135",3479,"","",NICE_RELAY_TYPE_TURN_UDP);
+	//rtp.addRelay("108.161.129.135",3479,"","",NICE_RELAY_TYPE_TURN_UDP);
 	//rtp.getClient().drop = false;
 	rtp.getXMPP().setCapabilities("telekinect");
 	rtp.connectXMPP(server,user,pwd);
