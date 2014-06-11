@@ -68,6 +68,7 @@ class ofApp : public ofBaseApp{
 		ofPolyline remoteContour;
 
 		enum CallingState{
+			MissingSettings,
 			Calling,
 			ReceivingCall,
 			InCall,

@@ -1,6 +1,8 @@
 #include "ofApp.h"
 #include "ofxGstRTPUtils.h"
 #include "ofxNice.h"
+#include "ofConstants.h"
+
 #define USE_16BIT_DEPTH
 
 #ifdef USE_16BIT_DEPTH
@@ -36,24 +38,30 @@ void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
 
 	ofXml settings;
-	settings.load("settings.xml");
-	string server = settings.getValue("server");
-	string user = settings.getValue("user");
-	string pwd = settings.getValue("pwd");
 
-	//ofxNiceEnableDebug();
-	rtp.setup(200);
-	rtp.setStunServer("132.177.123.6");
-	rtp.getXMPP().setCapabilities("telekinect");
-	rtp.connectXMPP(server,user,pwd);
-	rtp.addSendVideoChannel(640,480,30);
-	if(depth16){
-		rtp.addSendDepthChannel(160,120,30,depth16);
+	if(settings.load("settings.xml")){
+		string server = settings.getValue("server");
+		string user = settings.getValue("user");
+		string pwd = settings.getValue("pwd");
+
+		//ofxNiceEnableDebug();
+		rtp.setup(200);
+		rtp.setStunServer("132.177.123.6");
+		rtp.getXMPP().setCapabilities("telekinect");
+		rtp.connectXMPP(server,user,pwd);
+		rtp.addSendVideoChannel(640,480,30);
+		if(depth16){
+			rtp.addSendDepthChannel(160,120,30,depth16);
+		}else{
+			rtp.addSendDepthChannel(640,480,30,depth16);
+		}
+		rtp.addSendOscChannel();
+		rtp.addSendAudioChannel();
+
+		callingState = Disconnected;
 	}else{
-		rtp.addSendDepthChannel(640,480,30,depth16);
+		callingState = MissingSettings;
 	}
-	rtp.addSendOscChannel();
-	rtp.addSendAudioChannel();
 
 
 	kinect.init();
@@ -153,8 +161,6 @@ void ofApp::setup(){
 	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
 	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
 	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
-
-	callingState = Disconnected;
 
 	ring.loadSound("ring.wav",false);
 	lastRing = 0;
@@ -424,6 +430,16 @@ void ofApp::draw(){
 		ofSetColor(255);
 		ofDrawBitmapString("Ok",ok.x+30,ok.y+20);
 		ofDrawBitmapString("Decline",cancel.x+30,cancel.y+20);
+	}
+
+	if(callingState==MissingSettings){
+		ofSetColor(30,30,30,170);
+		ofRect(0,0,ofGetWidth(),ofGetHeight());
+		ofSetColor(255,255,255);
+		ofRectangle popup(ofGetWidth()*.5-200,ofGetHeight()*.5-100,400,200);
+		ofRect(popup);
+		ofSetColor(0);
+		ofDrawBitmapString("Missing settings",popup.x+30,popup.y+30);
 
 	}
 
