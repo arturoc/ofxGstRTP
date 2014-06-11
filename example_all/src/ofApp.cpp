@@ -5,6 +5,10 @@
 
 #define USE_16BIT_DEPTH
 
+// uncomment to generate env vars for bundled
+// application in osx
+//#define BUNDLED
+
 #ifdef USE_16BIT_DEPTH
 	bool depth16=true;
 #else
@@ -36,6 +40,9 @@ string vertexShader = STRINGIFY(
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+#ifdef BUNDLED
+    ofxGStreamerSetBundleEnvironment();
+#endif
 
 	ofXml settings;
 
@@ -60,7 +67,7 @@ void ofApp::setup(){
 
 		callingState = Disconnected;
 	}else{
-		callingState = MissingSettings;
+		rtp.addSendDepthChannel(640,480,30,depth16);
 	}
 
 
@@ -161,6 +168,8 @@ void ofApp::setup(){
 	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
 	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
 	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
+
+	callingState = Disconnected;
 
 	ring.loadSound("ring.wav",false);
 	lastRing = 0;
@@ -430,16 +439,6 @@ void ofApp::draw(){
 		ofSetColor(255);
 		ofDrawBitmapString("Ok",ok.x+30,ok.y+20);
 		ofDrawBitmapString("Decline",cancel.x+30,cancel.y+20);
-	}
-
-	if(callingState==MissingSettings){
-		ofSetColor(30,30,30,170);
-		ofRect(0,0,ofGetWidth(),ofGetHeight());
-		ofSetColor(255,255,255);
-		ofRectangle popup(ofGetWidth()*.5-200,ofGetHeight()*.5-100,400,200);
-		ofRect(popup);
-		ofSetColor(0);
-		ofDrawBitmapString("Missing settings",popup.x+30,popup.y+30);
 
 	}
 
