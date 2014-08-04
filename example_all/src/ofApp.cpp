@@ -1,13 +1,35 @@
+/**
+ * This example demos how to create an application that sends audio,
+ * video, depth and meta data (using osc) from computers behind a NAT
+ * router.
+ *
+ * It uses XMPP to start a connection with another peer and then the
+ * ICE protocol through libnice and ofxNice to do NAT traversal,
+ * avoiding to have to setup IP addresses and opening specific ports on
+ * the routers.
+ *
+ * Once the connection is established it uses the RTP protocol to send the
+ * different streams in sync between the two peers.
+ *
+ * All this happens transparently in ofxGstRTP so you don't need to setup
+ * every individual protocol.
+ */
+
+
 #include "ofApp.h"
 #include "ofxGstRTPUtils.h"
 #include "ofxNice.h"
 #include "ofConstants.h"
 
-#define USE_16BIT_DEPTH
 
 // uncomment to generate env vars for bundled
 // application in osx
 //#define BUNDLED
+
+// in this example we send the point cloud instead of the 8bit image
+// this flag is used in several places in the example to setup, send
+// and receive 16bits depth
+#define USE_16BIT_DEPTH
 
 #ifdef USE_16BIT_DEPTH
 	bool depth16=true;
@@ -15,47 +37,57 @@
 	bool depth16=false;
 #endif
 
-#define STRINGIFY(x) #x
-
-string vertexShader = STRINGIFY(
-	uniform float removeFar;
-	void main(){
-		gl_TexCoord[0] = gl_MultiTexCoord0;
-		if(gl_Vertex.z<0.1){
-			gl_Position = vec4(0.,0.,0.,0.);
-			gl_FrontColor =  vec4(0.,0.,0.,0.);
-		}else if(removeFar>.5 && gl_Vertex.z>490.){
-			gl_Position = vec4(0.,0.,0.,0.);
-			gl_FrontColor =  vec4(0.,0.,0.,0.);
-		}else{
-			vec4 pos = gl_Vertex;
-			pos.z *= -1.;
-			gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * pos;
-			gl_FrontColor =  gl_Color;
-		}
-	}
-);
-
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-	ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+	// uncommment to set logging of the different modules to verbose
+	// ofSetLogLevel(ofxGstRTPClient::LOG_NAME,OF_LOG_VERBOSE);
+	// ofSetLogLevel(ofxGstRTPServer::LOG_NAME,OF_LOG_VERBOSE);
+	// ofSetLogLevel(ofxNice::LOG_NAME,OF_LOG_VERBOSE);
+	// ofSetLogLevel(ofxXMPP::LOG_NAME,OF_LOG_VERBOSE);
+
+	// enable additional debugging traces for libnice
+	//ofxNiceEnableDebug();
+
 #ifdef BUNDLED
+	// if we want to create a bundle application, tell gstreamer
+	// to look for plugins on the bundle instead of the default path
     ofxGStreamerSetBundleEnvironment();
 #endif
 
+    // try to load settings from an xml file, in a real application
+    // you shouldn't be storing passwords in plain text in an xml!
 	ofXml settings;
-
 	if(settings.load("settings.xml")){
 		string server = settings.getValue("server");
 		string user = settings.getValue("user");
 		string pwd = settings.getValue("pwd");
 
-		//ofxNiceEnableDebug();
+		// setup the rtp module with 200ms max latency on the receiving end
 		rtp.setup(200);
+
+		// the STUN server is used for NAT transversal and should be the same in
+		// both computers, you can find a list of public STUN servers here:
+		// http://www.voip-info.org/wiki/view/STUN
 		rtp.setStunServer("132.177.123.6");
+
+		// additionally we can use a TURN server that will relay all the streams
+		// if we are behind a very restrictive network, you can install your
+		// own TURN server using this software:
+		// https://code.google.com/p/rfc5766-turn-server/wiki/Readme
+		// if you enable a TURN server it'll also act as STUN server so set the
+		// STUN server to the same IP
+		//rtp.addRelay("IP_ADDRESS",3479,"","",NICE_RELAY_TYPE_TURN_UDP);
+
+		// add a capabilities string so other clients can recognize that we
+		// are running this app and not some other XMPP software like gtalk
 		rtp.getXMPP().setCapabilities("telekinect");
+
+		// start the connection to the XMPP server
 		rtp.connectXMPP(server,user,pwd);
+
+		// add the video, depth, osc and audio channels that we are going to use
+		// right now this have to be the same on both ends
 		rtp.addSendVideoChannel(640,480,30);
 		if(depth16){
 			rtp.addSendDepthChannel(160,120,30,depth16);
@@ -64,19 +96,20 @@ void ofApp::setup(){
 		}
 		rtp.addSendOscChannel();
 		rtp.addSendAudioChannel();
-
-		callingState = Disconnected;
 	}else{
-		rtp.addSendDepthChannel(640,480,30,depth16);
+		ofLogError() << "couldn't load settings.xml file";
 	}
 
-
+	// Start the kinect and set the registration to true so depth
+	// and rgb match
 	kinect.init();
 	kinect.setRegistration(true);
 	bool kinectOpen = kinect.open();
-
 	//kinect.setDepthClipping(500,1000);
 
+	// load a shader to create a mesh out of the point clouds
+	// and calculate the world coordinates on the gpu to make the
+	// application faster
 	shader.load("shader.vert","shader.frag","shader.geom");
 	shader.begin();
 	if(kinectOpen){
@@ -92,9 +125,11 @@ void ofApp::setup(){
 	shader.setUniform1f("max_distance",500);
 	shader.end();
 
+	// create a gui and add the rtp parameters to it
 	gui.setup("","settings.xml",ofGetWidth()-250,10);
 	gui.add(rtp.parameters);
 
+	// allocate some textures to render the local and remote feeds
 	textureVideoRemote.allocate(640,480,GL_RGB8);
 	textureVideoLocal.allocate(640,480,GL_RGB8);
 
@@ -109,8 +144,10 @@ void ofApp::setup(){
 	textureDepthLocal.setRGToRGBASwizzles(true);
 	resizedDepth.allocate(160,120,1);
 
-	drawState = LocalRemote;
 
+	// setup a mesh to draw the point cloud, if we are using 8bits
+	// depth the point cloud will be really broken but we set it up anyway
+	// to make the logic of the program simpler
 	if(depth16){
 		pointCloud.getVertices().resize(160*120);
 		pointCloud.getTexCoords().resize(160*120);
@@ -147,52 +184,58 @@ void ofApp::setup(){
 		}
 	}
 
-	//ofSetBackgroundAuto(false);
-
-	if(depth16){
-		//ofxGstRTPUtils::CreateColorGradientLUT(pow(2.f,14.f));
-	}
-
-	//camera.setVFlip(true);
-
+	// setup an easyCam to be able to navigate in
+	// the point cloud modes
 	camera.setTarget(ofVec3f(0.0,0.0,-1000.0));
 
+	// opencv image to do some basic contour finding to send a blob
+	// over osc as a test
 	gray.allocate(640,480);
 
-	calling = -1;
 
+	// add a listener to receive a callback whenever there's a chat
+	// message from the XMPP client
 	ofAddListener(rtp.getXMPP().newMessage,this,&ofApp::onNewMessage);
 
-	guiState = Friends;
 
+	// add listeners to receive the call live cycle callbacks
 	ofAddListener(rtp.callReceived,this,&ofApp::onCallReceived);
 	ofAddListener(rtp.callFinished,this,&ofApp::onCallFinished);
 	ofAddListener(rtp.callAccepted,this,&ofApp::onCallAccepted);
 
-	callingState = Disconnected;
 
+	// some state variables and ringing sound to play when there's a new call
 	ring.loadSound("ring.wav",false);
+	callingState = Disconnected;
+	drawState = LocalRemote;
+	calling = -1;
+	guiState = Friends;
 	lastRing = 0;
 }
 
+// will be called whenever there's a new call from another peer
 void ofApp::onCallReceived(string & from){
 	callFrom = ofSplitString(from,"/")[0];
 	callingState = ReceivingCall;
 }
 
+// will be called when we start a call and the other peer accepts it
 void ofApp::onCallAccepted(string & from){
 	if(callingState == Calling){
 		callingState = InCall;
 	}
 }
 
+// will be called whenever the call ends and
+// receives the reason as parameter
 void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	if(callingState==Calling){
+		// if we started a call most likely the other end declined it
+		// or the call failed
 		ofSystemAlertDialog("Call declined");
 	}
 	cout << "received end call" << endl;
-	callingState = Disconnected;
-	calling = -1;
+	// reset the rtp element to be able to start a new call
 	rtp.setup(200);
 	rtp.setStunServer("132.177.123.6");
 	rtp.addSendVideoChannel(640,480,30);
@@ -203,8 +246,13 @@ void ofApp::onCallFinished(ofxXMPPTerminateReason & reason){
 	}
 	rtp.addSendOscChannel();
 	rtp.addSendAudioChannel();
+
+	// reset the state
+	callingState = Disconnected;
+	calling = -1;
 }
 
+// will be called whenever there's a new chat message
 void ofApp::onNewMessage(ofxXMPPMessage & msg){
 	messages.push_back(msg);
 	if(messages.size()>8) messages.pop_front();
@@ -216,26 +264,32 @@ void ofApp::exit(){
 
 //--------------------------------------------------------------
 void ofApp::update(){
+	// update the local side and send any new data through the RTP server
 	{
+		// update the kinect
 		kinect.update();
+
+		// get the current time to use the same time for all the streams
+		// to have a more accurate syncing
 		GstClockTime now = rtp.getServer().getTimeStamp();
 
+		// if there's a new RGB frame from the kinect, load it on a texture
+		// to draw it locally and send it to the other peer through the
+		// rtp element
 		if(kinect.isFrameNewVideo()){
 			fpsRGB.newFrame();
 			textureVideoLocal.loadData(kinect.getPixelsRef());
-
-			{
-				//kinectUpdater.signalNewKinectFrame();
-				rtp.getServer().newFrame(kinect.getPixelsRef(),now);
-			}
+			rtp.getServer().newFrame(kinect.getPixelsRef(),now);
 
 		}
 
+		// if there's a new depth frame from the kinect, load it on a texture
+		// to draw it locally and send it to the other peer through the
+		// rtp element, here we also do a basic contour finding over the depth
+		// to test the metadata osc stream and load the depth as a point cloud
+		// on an ofVboMesh
 		if(kinect.isFrameNewDepth()){
 			fpsDepth.newFrame();
-			if(depth16){
-				kinect.getRawDepthPixelsRef().resizeTo(resizedDepth,OF_INTERPOLATE_NEAREST_NEIGHBOR);
-			}
 
 			if(depth16){
 				textureDepthLocal.loadData(kinect.getRawDepthPixelsRef(),GL_RED);
@@ -243,15 +297,14 @@ void ofApp::update(){
 				textureDepthLocal.loadData(kinect.getDepthPixelsRef());
 			}
 
-			{
-				//kinectUpdater.signalNewKinectFrame();
-				if(depth16){
-					rtp.getServer().newFrameDepth(resizedDepth,now,zeroPPixelSize,zeroPDistance);
-				}else{
-					rtp.getServer().newFrameDepth(kinect.getDepthPixelsRef(),now);
-				}
+			if(depth16){
+				kinect.getRawDepthPixelsRef().resizeTo(resizedDepth,OF_INTERPOLATE_NEAREST_NEIGHBOR);
+				rtp.getServer().newFrameDepth(resizedDepth,now,zeroPPixelSize,zeroPDistance);
+			}else{
+				rtp.getServer().newFrameDepth(kinect.getDepthPixelsRef(),now);
 			}
 
+			// contour analisys and send the contour over osc rtp
 			{
 				gray.setFromPixels(kinect.getDepthPixelsRef());
 				gray.adaptiveThreshold(5,0,false,true);
@@ -271,6 +324,7 @@ void ofApp::update(){
 				rtp.getServer().newOscMsg(msg,now);
 			}
 
+			// load the local depth on the mesh
 			if(drawState==LocalPointCloud){
 				if(depth16){
 					int i=0;
@@ -291,15 +345,23 @@ void ofApp::update(){
 				}
 			}
 		}
-	}
+	}// end updating the local side
 
-	// update the client ànd load the pixels into a texture if there's a new frame
+
+
+	// update the remove side and load any received data from the RTP client
 	{
+		// update the client
 		rtp.getClient().update();
+
+		// check if we've received a new RGB frame and load it on a texture
 		if(rtp.getClient().isFrameNewVideo()){
 			fpsClientVideo.newFrame();
 			textureVideoRemote.loadData(rtp.getClient().getPixelsVideo());
 		}
+
+		// check if we've received a new depth frame and load it on a texture
+		// and as a point cloud on the ofVboMesh
 		if(rtp.getClient().isFrameNewDepth()){
 			fpsClientDepth.newFrame();
 			if(depth16){
@@ -332,6 +394,8 @@ void ofApp::update(){
 			}
 		}
 
+		// check if we've received any new contour
+		// and load it on an oFPolyline to show it
 		if(rtp.getClient().isFrameNewOsc()){
 			ofxOscMessage msg = rtp.getClient().getOscMessage();
 			remoteContour.clear();
@@ -341,12 +405,7 @@ void ofApp::update(){
 		}
 	}
 
-	/*if(calling!=-1){
-		if(rtp.getXMPP().getJingleState()==ofxXMPP::Disconnected){
-			calling = -1;
-		}
-	}*/
-
+	// play the ring tone if we are starting a call or receiving one
 	if(callingState==ReceivingCall || callingState==Calling){
 		unsigned long long now = ofGetElapsedTimeMillis();
 		if(now - lastRing>2500){
@@ -362,6 +421,7 @@ void ofApp::draw(){
 	switch(drawState){
 	case LocalRemote:
 		ofSetColor(255);
+		// draw the remote RGB stream
 		{
 			textureVideoRemote.draw(0,0);
 			ofSetColor(255,255,0);
@@ -371,57 +431,62 @@ void ofApp::draw(){
 			ofDrawBitmapString(ofToString(fpsClientVideo.getFPS(),2),20,40);
 		}
 
+		// draw the remote depth stream
 		{
 			textureDepthRemote.draw(640,0,640,480);
 			ofDrawBitmapString(ofToString(fpsClientDepth.getFPS(),2),660,20);
 		}
 
 		ofSetColor(255);
+		// draw the local RGB stream
 		{
 			textureVideoLocal.draw(400,300,240,180);
 			ofDrawBitmapString(ofToString(fpsRGB.getFPS(),2),410,315);
 		}
+		// draw the local depth stream
 		{
 			textureDepthLocal.draw(1040,300,240,180);
 			ofDrawBitmapString(ofToString(fpsDepth.getFPS(),2),1050,315);
 		}
 		break;
 	case RemotePointCloud:
-		//if(rtp.getClient().isFrameNewDepth()){
-			ofBackground(0);
-			ofSetColor(255);
-			ofEnableDepthTest();
-			shader.begin();
-			shader.setUniform1f("ref_pix_size",rtp.getClient().getZeroPlanePixelSize());
-			shader.setUniform1f("ref_distance",rtp.getClient().getZeroPlaneDistance());
-			camera.begin();
-			textureVideoRemote.bind();
-			pointCloud.drawWireframe();
-			textureVideoRemote.unbind();
-			camera.end();
-			shader.end();
-			ofDisableDepthTest();
-		//}
+		// draw the remote point cloud as a mesh
+		// using the meshing shader
+		ofBackground(0);
+		ofSetColor(255);
+		ofEnableDepthTest();
+		shader.begin();
+		shader.setUniform1f("ref_pix_size",rtp.getClient().getZeroPlanePixelSize());
+		shader.setUniform1f("ref_distance",rtp.getClient().getZeroPlaneDistance());
+		camera.begin();
+		textureVideoRemote.bind();
+		pointCloud.drawWireframe();
+		textureVideoRemote.unbind();
+		camera.end();
+		shader.end();
+		ofDisableDepthTest();
 		break;
 	case LocalPointCloud:
-		//if(kinect.isFrameNewDepth()){
-			ofBackground(0);
-			ofSetColor(255);
-			ofEnableDepthTest();
-			shader.begin();
-			shader.setUniform1f("ref_pix_size",zeroPPixelSize);
-			shader.setUniform1f("ref_distance",zeroPDistance);
-			camera.begin();
-			textureVideoLocal.bind();
-			pointCloud.drawWireframe();
-			textureVideoLocal.unbind();
-			camera.end();
-			shader.end();
-			ofDisableDepthTest();
-		//}
+		// draw the local point cloud as a mesh
+		// using the meshing shader
+		ofBackground(0);
+		ofSetColor(255);
+		ofEnableDepthTest();
+		shader.begin();
+		shader.setUniform1f("ref_pix_size",zeroPPixelSize);
+		shader.setUniform1f("ref_distance",zeroPDistance);
+		camera.begin();
+		textureVideoLocal.bind();
+		pointCloud.drawWireframe();
+		textureVideoLocal.unbind();
+		camera.end();
+		shader.end();
+		ofDisableDepthTest();
 		break;
 	}
 
+	// if we have an incoming call draw a simple gui to allow
+	// the user to accept it or decline it
 	if(callingState==ReceivingCall){
 		ofSetColor(30,30,30,170);
 		ofRect(0,0,ofGetWidth(),ofGetHeight());
@@ -439,9 +504,10 @@ void ofApp::draw(){
 		ofSetColor(255);
 		ofDrawBitmapString("Ok",ok.x+30,ok.y+20);
 		ofDrawBitmapString("Decline",cancel.x+30,cancel.y+20);
-
 	}
 
+	// draw the gui to show the connected friends and
+	// allow to establish a new connection
 	ofSetColor(255);
 	ofRect(ofGetWidth()-300,0,300,ofGetHeight());
 	if(guiState==Friends){
@@ -508,6 +574,7 @@ void ofApp::keyPressed(int key){
 		guiState = (GuiState)(guiState+1);
 		guiState = (GuiState)(guiState%NumGuiStates);
 	}else if(key==' '){
+		// test to check that ending a call works properly
 		cout << "ending call" << endl;
 		rtp.endCall();
 		rtp.setup(200);
@@ -542,6 +609,7 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
+	// interaction for friends list and accept/decline a call guis
 	ofVec2f mouse(x,y);
 	if(callingState==Disconnected && guiState==Friends){
 		ofRectangle friendsRect(ofGetWidth()-300,0,300,rtp.getXMPP().getFriends().size()*20);
