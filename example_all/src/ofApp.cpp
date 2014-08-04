@@ -589,6 +589,18 @@ void ofApp::keyPressed(int key){
 		rtp.addSendAudioChannel();
 		calling = -1;
 		callingState = Disconnected;
+	}else if(key==OF_KEY_LEFT_CONTROL){
+		// test to check that ending the xmpp connection works properly
+		rtp.getXMPP().stop();
+		ofXml settings;
+		if(settings.load("settings.xml")){
+			string server = settings.getValue("server");
+			string user = settings.getValue("user");
+			string pwd = settings.getValue("pwd");
+			rtp.connectXMPP(server,user,pwd);
+		}else{
+			ofLogError() << "couldn't find settings.xml file";
+		}
 	}
 }
 
