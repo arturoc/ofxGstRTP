@@ -77,11 +77,18 @@ void ofxGstXMPPRTP::setup(int clientLatency, bool enableEchoCancel){
 	}
 #endif
 
-	ofAddListener(xmpp.jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
-	ofAddListener(xmpp.jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);
+	if(!xmpp) xmpp = shared_ptr<ofxXMPP>(new ofxXMPP);
+	ofAddListener(xmpp->jingleInitiationReceived,this,&ofxGstXMPPRTP::onJingleInitiationReceived);
+	ofAddListener(xmpp->jingleTerminateReceived,this,&ofxGstXMPPRTP::onJingleTerminateReceived);
 	ofAddListener(client->disconnectedEvent,this,&ofxGstXMPPRTP::onClientDisconnected);
 
 	initialized = true;
+}
+
+
+void ofxGstXMPPRTP::setXMPP(shared_ptr<ofxXMPP> & xmpp){
+	if(xmpp) ofLogError() << "xmpp already setup";
+	this->xmpp = xmpp;
 }
 
 void ofxGstXMPPRTP::setStunServer(const string & ip, uint port){
@@ -97,8 +104,8 @@ void ofxGstXMPPRTP::addRelay(const string & ip, uint port, const string & user, 
 void ofxGstXMPPRTP::onJingleInitiationReceived(ofxXMPPJingleInitiation & jingle){
 	ofLogNotice() << "received call from " << jingle.from;
 
-	xmpp.ack(jingle);
-	xmpp.ring(jingle);
+	xmpp->ack(jingle);
+	xmpp->ring(jingle);
 
 	remoteJingle = jingle;
 	isControlling = false;
@@ -115,7 +122,7 @@ void ofxGstXMPPRTP::onClientDisconnected(){
 	close();
 	ofxXMPPTerminateReason reason = ofxXMPPTerminateUnkown;
 
-	xmpp.terminateRTPSession(remoteJingle, reason);
+	xmpp->terminateRTPSession(remoteJingle, reason);
 
 	ofNotifyEvent(callFinished,reason,this);
 }
@@ -206,12 +213,12 @@ void ofxGstXMPPRTP::acceptCall(){
 }
 
 void ofxGstXMPPRTP::refuseCall(){
-	xmpp.terminateRTPSession(remoteJingle, ofxXMPPTerminateDecline);
+	xmpp->terminateRTPSession(remoteJingle, ofxXMPPTerminateDecline);
 	close();
 }
 
 void ofxGstXMPPRTP::endCall(){
-	xmpp.terminateRTPSession(remoteJingle, ofxXMPPTerminateSuccess);
+	xmpp->terminateRTPSession(remoteJingle, ofxXMPPTerminateSuccess);
 	close();
 }
 
@@ -255,9 +262,9 @@ void ofxGstXMPPRTP::onNiceLocalCandidatesGathered( const void * sender, vector<o
 
 	if( (videoGathered || !videoStream) && (audioGathered || !audioStream) && (depthGathered || !depthStream) && (oscGathered || !oscStream)){
 		if(!isControlling){
-			xmpp.acceptRTPSession(remoteJingle.from,localJingle);
+			xmpp->acceptRTPSession(remoteJingle.from,localJingle);
 		}else{
-			xmpp.initiateRTP(callingTo.userName+"/"+callingTo.resource,localJingle);
+			xmpp->initiateRTP(callingTo.userName+"/"+callingTo.resource,localJingle);
 		}
 	}
 }
@@ -286,30 +293,30 @@ void ofxGstXMPPRTP::onJingleInitiationAccepted(ofxXMPPJingleInitiation & jingle)
 		}
 	}
 
-	xmpp.ack(jingle);
+	xmpp->ack(jingle);
 	ofNotifyEvent(callAccepted,jingle.from,this);
 }
 
 
 
 void ofxGstXMPPRTP::connectXMPP(const string & host, const string & username, const string & pwd){
-	xmpp.connect(host,username,pwd);
+	xmpp->connect(host,username,pwd);
 }
 
 vector<ofxXMPPUser> ofxGstXMPPRTP::getFriends(){
-	return xmpp.getFriends();
+	return xmpp->getFriends();
 }
 
 void ofxGstXMPPRTP::setShow(ofxXMPPShowState showState){
-	xmpp.setShow(showState);
+	xmpp->setShow(showState);
 }
 
 void ofxGstXMPPRTP::setStatus(const string & status){
-	xmpp.setStatus(status);
+	xmpp->setStatus(status);
 }
 
 void ofxGstXMPPRTP::sendXMPPMessage(const string & to, const string & message){
-	xmpp.sendMessage(to,message);
+	xmpp->sendMessage(to,message);
 }
 
 void ofxGstXMPPRTP::addSendVideoChannel(int w, int h, int fps){
@@ -355,7 +362,7 @@ void ofxGstXMPPRTP::call(const ofxXMPPUser & user){
 		nice->setStunServer(stunServer,stunPort);
 	}
 
-	ofAddListener(xmpp.jingleInitiationAccepted,this,&ofxGstXMPPRTP::onJingleInitiationAccepted);
+	ofAddListener(xmpp->jingleInitiationAccepted,this,&ofxGstXMPPRTP::onJingleInitiationAccepted);
 
 	if(videoStream){
 		videoStream->setup(*nice,3);
@@ -396,7 +403,7 @@ ofxGstRTPClient & ofxGstXMPPRTP::getClient(){
 }
 
 ofxXMPP & ofxGstXMPPRTP::getXMPP(){
-	return xmpp;
+	return *xmpp;
 }
 
 void ofxGstXMPPRTP::close(){

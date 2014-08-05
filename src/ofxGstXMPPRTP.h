@@ -16,6 +16,8 @@
 #include "ofxXMPP.h"
 #include "ofxGstRTPServer.h"
 #include "ofxGstRTPClient.h"
+#include "ofTypes.h"
+#include "ofConstants.h"
 
 #if ENABLE_ECHO_CANCEL
 #include "ofxEchoCancel.h"
@@ -42,6 +44,11 @@ public:
 	/// starts a client and server with the specified maximum latency
 	/// for the client
 	void setup(int clientLatency=200, bool enableEchoCancel=true);
+
+	/// sets an external xmpp client, in case non is set the addon will
+	/// create one when calling setup, so this needs to be called before
+	/// setup
+	void setXMPP(shared_ptr<ofxXMPP> & xmpp);
 
 	/// setup a STUN server to be used for NAT transversal
 	void setStunServer(const string & ip, uint port=3478);
@@ -130,7 +137,7 @@ private:
 
 	void close();
 
-	ofxXMPP xmpp;
+	shared_ptr<ofxXMPP> xmpp;
 	shared_ptr<ofxNiceAgent> nice;
 	shared_ptr<ofxGstRTPClient> client;
 	shared_ptr<ofxGstRTPServer> server;
