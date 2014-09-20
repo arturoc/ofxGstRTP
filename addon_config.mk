@@ -24,7 +24,7 @@ meta:
 common:
 	# dependencies with other addons, a list of them separated by spaces 
 	# or use += in several lines
-	ADDON_DEPENDENCIES = ofxNice ofxXMPP ofxGStreamer
+	ADDON_DEPENDENCIES = ofxNice ofxXMPP ofxGStreamer ofxOsc ofxSnappy ofxDepthStreamCompression
 	
 	# include search paths, this will be usually parsed from the file system
 	# but if the addon or addon libraries need special search paths they can be
