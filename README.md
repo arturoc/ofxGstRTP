@@ -13,12 +13,14 @@ Currently we have examples working on OSX and Linux and are working on porting t
 
 ## Installing gstreamer
 
-This addon also depends on gstreamer, in linux it's installed by default as part of openFrameworks. On OSX and Windows you'll need to install it manually. To make this process easier please use the [ofxGtreamer](https://github.com/arturoc/ofxGstreamer) addon and follow the directions included there to install the dependencies. 
+This addon also depends on gstreamer, in linux it's installed by default as part of openFrameworks. On OSX and Windows you'll need to install it manually. To make this process easier please use the [ofxGstreamer](https://github.com/arturoc/ofxGstreamer) addon and follow the directions included there to install the dependencies. 
 
 ## Running the examples
 
-- This is based on openFramewors master (2014.02.27), so you'll need to use latest master from github or a [nightly build](http://www.openframeworks.cc/nightlybuilds.html) To generate the projects correctly you'll also need the latest version of the PG as of 2014.02.27
+- This is based on openFramewors master, so you'll need to use latest master from github or a [nightly build](http://www.openframeworks.cc/nightlybuilds.html) To generate the projects correctly you'll also need to build the latest version of the project generator.
 
-- Almost all examples contain a settings_example.xml file that needs to be renamed to settings.xml and modified with the correct settings.
+- Almost all examples contain a settings_example.xml file that needs to be renamed to settings.xml and modified with the correct settings for your gmail account. 
+
+- Since google moved from XMPP chat to google hangouts, its become more difficult to allow apps to access your gmail account. You will need to reduce the security in your gmail settings to allow external apps to access your contact data. This is not ideal, and we have plans to install our own XMPP server, but for now we use dummy gmail accounts for hacking. 
 
 
